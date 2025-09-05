@@ -10,7 +10,7 @@ function Home() {
     { id: 1, name: "Đếm số", fileName: "demso.html" },
     { id: 2, name: "Phi hành gia trốn thoát", fileName: "phihanhgiatronthoat.html" },
     { id: 3, name: "Quản lý đoàn tàu", fileName: "quanlydoantau.html" },
-    { id: 4, name: "Tàu thủy", fileName: "tenluanhatxu.html" },
+    { id: 4, name: "Phi hành gia nhặt xu", fileName: "tenluanhatxu.html" },
     { id: 5, name: "Vượt chướng ngại vật", fileName: "vuotchuongngaivat.html" },
   ];
 

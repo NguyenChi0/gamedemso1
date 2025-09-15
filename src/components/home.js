@@ -12,6 +12,13 @@ function Home() {
     { id: 3, name: "Quản lý đoàn tàu", fileName: "quanlydoantau.html" },
     { id: 4, name: "Phi hành gia nhặt xu", fileName: "tenluanhatxu.html" },
     { id: 5, name: "Vượt chướng ngại vật", fileName: "vuotchuongngaivat.html" },
+    { id: 6, name: "Nông dân chăm chỉ", fileName: "nongdanchamchi.html" },
+    { id: 7, name: "Tài xế giỏi giang", fileName: "taixegioigiang.html" },
+    { id: 8, name: "Sắp xếp đồ chơi", fileName: "xepbong.html" },
+    { id: 9, name: "Open World", fileName: "openworld.html" },
+    { id: 10, name: "Phù thủy đại tài", fileName: "phuthuydaitai.html" },
+    { id: 11, name: "Câu cá đỉnh cao", fileName: "canthutainang.html" },
+    { id: 12, name: "Máy gắp gấu", fileName: "maygapgau.html" },
   ];
 
   useEffect(() => {

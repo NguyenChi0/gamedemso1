@@ -5,11 +5,13 @@ function Register() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = () => {
-    // Không gọi API, chỉ redirect sang login
-    alert("Đăng ký thành công, mời bạn đăng nhập!");
-    navigate('/login');
+    setLoading(true);
+    setTimeout(() => {
+      navigate('/login');
+    }, 1000); // đợi 1 giây
   };
 
   return (
@@ -30,17 +32,18 @@ function Register() {
       />
       <button
         onClick={handleRegister}
+        disabled={loading}
         style={{
           marginTop: "10px",
           padding: "8px 16px",
           borderRadius: "6px",
           border: "1px solid #ccc",
-          background: "#4CAF50",
+          background: loading ? "#aaa" : "#4CAF50",
           color: "white",
-          cursor: "pointer"
+          cursor: loading ? "not-allowed" : "pointer"
         }}
       >
-        Đăng ký
+        {loading ? "Đang xử lý..." : "Đăng ký"}
       </button>
       <p style={{ marginTop: "15px" }}>
         Đã có tài khoản? <Link to="/login">Đăng nhập</Link>

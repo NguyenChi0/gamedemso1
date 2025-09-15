@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Đếm Số trong Nồi Phù Thủy</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      max-width: 900px;
+      width: 100%;
+    }
+    
+    h1 {
+      color: #ff6b8b;
+      text-shadow: 0 0 15px rgba(255, 107, 139, 0.7);
+      margin-bottom: 15px;
+      font-size: 2.5rem;
+    }
+    
+    .instructions {
+      color: #a9d6e5;
+      margin-bottom: 30px;
+      font-size: 1.2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .game-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    
+    #cauldron {
+      width: 280px;
+      height: 200px;
+      background: linear-gradient(to bottom, #2a0e5c, #0c0424);
+      border-radius: 50% 50% 60% 60%;
+      margin: 20px auto;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 
+        0 0 0 12px #5a2ca0,
+        inset 0 -30px 60px #120734,
+        0 0 40px rgba(143, 0, 255, 0.8);
+      border: 3px solid #8c52ff;
+      z-index: 2;
+    }
+    
+    #liquid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      background: linear-gradient(to top, #3498db80, #3498db40);
+      transition: height 0.8s, background 0.8s;
+      border-radius: 50% 50% 0 0;
+      z-index: 1;
+    }
+    
+    .cauldron-stand {
+      width: 120px;
+      height: 20px;
+      background: linear-gradient(to bottom, #7a7a7a, #4a4a4a);
+      border-radius: 10px;
+      margin-top: -10px;
+      z-index: 1;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    }
+    
+    .stand-legs {
+      display: flex;
+      justify-content: space-between;
+      width: 200px;
+      margin-top: -5px;
+    }
+    
+    .leg {
+      width: 15px;
+      height: 40px;
+      background: linear-gradient(to right, #5a5a5a, #3a3a3a);
+      border-radius: 5px;
+    }
+    
+    #result {
+      margin: 25px 0;
+      font-size: 1.5rem;
+      font-weight: bold;
+      min-height: 40px;
+      color: #ff9e44;
+      text-shadow: 0 0 5px rgba(255, 158, 68, 0.6);
+    }
+    
+    .ingredients {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .ingredient-container {
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    
+    .ingredient-container:hover {
+      transform: translateY(-5px);
+    }
+    
+    .ingredient {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
+      border: 2px solid #8c52ff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), 0 0 10px rgba(140, 82, 255, 0.5);
+      overflow: hidden;
+    }
+    
+    .ingredient img {
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    }
+    
+    .ingredient-number {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #ff6b8b;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 0 10px rgba(255, 107, 139, 0.7);
+    }
+    
+    /* Hiệu ứng pháo hoa */
+    .particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    .bubble {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      bottom: 0;
+      animation: bubbleRise linear forwards;
+      z-index: 2;
+    }
+    
+    @keyframes bubbleRise {
+      0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.7;
+      }
+      100% {
+        transform: translateY(-180px) scale(2.5);
+        opacity: 0;
+      }
+    }
+    
+    .smoke {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: smokeRise linear forwards;
+      z-index: 3;
+    }
+    
+    @keyframes smokeRise {
+      0% {
+        transform: translateX(-50%) scale(0.5);
+        opacity: 0.5;
+      }
+      100% {
+        transform: translateX(-50%) translateY(-70px) scale(4);
+        opacity: 0;
+      }
+    }
+    
+    .success {
+      color: #6eff89;
+      text-shadow: 0 0 10px rgba(110, 255, 137, 0.7);
+    }
+    
+    .error {
+      color: #ff6b6b;
+      text-shadow: 0 0 10px rgba(255, 107, 107, 0.7);
+    }
+    
+    .shuffle-btn {
+      background: linear-gradient(to right, #ff6b8b, #ff9e44);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      font-size: 1.1rem;
+      border-radius: 30px;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .shuffle-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    @media (max-width: 600px) {
+      .ingredients {
+        gap: 15px;
+      }
+      
+      .ingredient {
+        width: 70px;
+        height: 70px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔮 Game Nồi Phù Thủy</h1>
+    <p class="instructions">Thêm lần lượt các nguyên liệu từ 1 → 10 theo đúng thứ tự vào nồi!</p>
+
+    <div class="game-area">
+      <div id="cauldron">
+        <div id="liquid"></div>
+      </div>
+      <div class="cauldron-stand"></div>
+      <div class="stand-legs">
+        <div class="leg"></div>
+        <div class="leg"></div>
+      </div>
+    </div>
+
+    <div id="result">Hãy bắt đầu với nguyên liệu số 1!</div>
+
+    <div class="ingredients" id="ingredients"></div>
+    
+    <button class="shuffle-btn" id="shuffle-btn">🔀 Đảo Thứ Tự Nguyên Liệu</button>
+  </div>
+
+  <script>
+    const cauldron = document.getElementById("cauldron");
+    const liquid = document.getElementById("liquid");
+    const result = document.getElementById("result");
+    const ingredientsDiv = document.getElementById("ingredients");
+    const shuffleBtn = document.getElementById("shuffle-btn");
+
+    let current = 1; // Số hiện tại phải chọn
+    let ingredientOrder = []; // Thứ tự các nguyên liệu
+
+    const colors = [
+      "#3498db", "#2ecc71", "#f1c40f", "#e67e22", "#e74c3c",
+      "#9b59b6", "#1abc9c", "#ff66cc", "#ffffff", "#00ff88"
+    ];
+
+    // Khởi tạo game
+    function initGame() {
+      // Tạo mảng số từ 1 đến 10
+      ingredientOrder = Array.from({length: 10}, (_, i) => i + 1);
+      // Đảo thứ tự ngẫu nhiên
+      shuffleArray(ingredientOrder);
+      renderIngredients();
+    }
+
+    // Đảo thứ tự mảng
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    // Hiển thị các nguyên liệu
+    function renderIngredients() {
+      ingredientsDiv.innerHTML = '';
+      
+      ingredientOrder.forEach((number, index) => {
+        let container = document.createElement("div");
+        container.className = "ingredient-container";
+        container.dataset.item = number;
+        
+        let ingredientDiv = document.createElement("div");
+        ingredientDiv.className = "ingredient";
+        
+        // Tạo hình ảnh nguyên liệu
+        let img = document.createElement("img");
+        img.src = `nguyenlieu${number}.png`;
+        img.alt = `Nguyên liệu ${number}`;
+        img.onerror = function() {
+          // Nếu hình ảnh không tải được, hiển thị số thay thế
+          this.style.display = 'none';
+          let fallback = document.createElement('div');
+          fallback.textContent = number;
+          fallback.style.fontSize = '24px';
+          fallback.style.fontWeight = 'bold';
+          fallback.style.color = colors[number-1];
+          ingredientDiv.appendChild(fallback);
+        };
+        
+        ingredientDiv.appendChild(img);
+        
+        // Thêm số nhỏ trên góc
+        let numberBadge = document.createElement("div");
+        numberBadge.className = "ingredient-number";
+        numberBadge.textContent = number;
+        
+        container.appendChild(ingredientDiv);
+        container.appendChild(numberBadge);
+        ingredientsDiv.appendChild(container);
+
+        container.addEventListener("click", () => {
+          let item = parseInt(container.dataset.item);
+
+          if (item === current) {
+            // Thay đổi màu chất lỏng trong nồi - SỬA Ở ĐÂY
+            // Mỗi lần thêm nguyên liệu, mực nước tăng 10%
+            liquid.style.height = `${current * 10}%`;
+            liquid.style.background = `linear-gradient(to top, ${colors[current-1]}80, ${colors[current-1]}40)`;
+            
+            // Tạo bong bóng
+            createBubbles();
+            
+            // Tạo khói
+            createSmoke();
+            
+            // Thêm hình ảnh nguyên liệu rơi vào nồi
+            let drop = document.createElement("img");
+            drop.src = `nguyenlieu${current}.png`;
+            drop.style.position = "absolute";
+            drop.style.left = Math.random()*200 + "px";
+            drop.style.top = Math.random()*140 + "px";
+            drop.style.opacity = "0.9";
+            drop.style.width = "40px";
+            drop.style.height = "40px";
+            drop.style.zIndex = "5";
+            drop.onerror = function() {
+              // Nếu hình ảnh không tải được, hiển thị số thay thế
+              this.style.display = 'none';
+              let fallback = document.createElement('div');
+              fallback.textContent = current;
+              fallback.style.position = "absolute";
+              fallback.style.left = Math.random()*200 + "px";
+              fallback.style.top = Math.random()*140 + "px";
+              fallback.style.fontSize = '24px';
+              fallback.style.fontWeight = 'bold';
+              fallback.style.color = colors[current-1];
+              cauldron.appendChild(fallback);
+            };
+            cauldron.appendChild(drop);
+
+            // Hiệu ứng pháo hoa tại tâm nồi
+            fireworks(140, 100);
+
+            if (current === 10) {
+              result.textContent = "🎉 Chúc mừng! Bạn đã hoàn thành câu thần chú!";
+              result.className = "success";
+              setTimeout(resetGame, 3000);
+            } else {
+              result.textContent = `Tiếp tục! Thêm nguyên liệu số ${current + 1}`;
+              result.className = "";
+            }
+            current++;
+          } else {
+            result.textContent = "❌ Sai rồi! Phép thuật thất bại, hãy bắt đầu lại!";
+            result.className = "error";
+            liquid.style.background = "linear-gradient(to top, #ff000080, #ff000040)";
+            setTimeout(resetGame, 2000);
+          }
+        });
+      });
+    }
+
+    // Nút đảo thứ tự
+    shuffleBtn.addEventListener("click", () => {
+      shuffleArray(ingredientOrder);
+      renderIngredients();
+      result.textContent = "Thứ tự nguyên liệu đã được đảo! Hãy tiếp tục...";
+      setTimeout(() => {
+        if (current === 1) {
+          result.textContent = "Hãy bắt đầu với nguyên liệu số 1!";
+        } else {
+          result.textContent = `Tiếp tục với nguyên liệu số ${current}`;
+        }
+      }, 1500);
+    });
+
+    function resetGame() {
+      current = 1;
+      result.textContent = "Hãy bắt đầu với nguyên liệu số 1!";
+      result.className = "";
+      liquid.style.height = "0";
+      
+      // Xóa tất cả các nguyên liệu trong nồi
+      let children = cauldron.children;
+      for (let i = children.length - 1; i >= 0; i--) {
+        if (children[i].id !== "liquid") {
+          cauldron.removeChild(children[i]);
+        }
+      }
+      
+      // Đảo thứ tự nguyên liệu khi reset game
+      shuffleArray(ingredientOrder);
+      renderIngredients();
+    }
+
+    // Tạo hiệu ứng pháo hoa
+    function fireworks(x, y) {
+      for (let i = 0; i < 25; i++) {
+        let particle = document.createElement("div");
+        particle.className = "particle";
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        cauldron.appendChild(particle);
+
+        let angle = Math.random() * 2 * Math.PI;
+        let distance = Math.random() * 100 + 40;
+        let targetX = x + Math.cos(angle) * distance;
+        let targetY = y + Math.sin(angle) * distance;
+
+        particle.style.left = x + "px";
+        particle.style.top = y + "px";
+
+        particle.animate([
+          { transform: "translate(0,0)", opacity: 1 },
+          { transform: `translate(${targetX - x}px, ${targetY - y}px)`, opacity: 0 }
+        ], {
+          duration: 1200,
+          easing: "ease-out"
+        });
+
+        setTimeout(() => {
+          if (particle.parentNode) {
+            particle.remove();
+          }
+        }, 1200);
+      }
+    }
+    
+    // Tạo bong bóng
+    function createBubbles() {
+      for (let i = 0; i < 8; i++) {
+        let bubble = document.createElement("div");
+        bubble.className = "bubble";
+        
+        const size = Math.random() * 20 + 8;
+        const left = Math.random() * 220 + 30;
+        
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${left}px`;
+        bubble.style.bottom = "0";
+        
+        cauldron.appendChild(bubble);
+        
+        const duration = Math.random() * 2000 + 1500;
+        bubble.style.animationDuration = `${duration}ms`;
+        
+        setTimeout(() => {
+          if (bubble.parentNode) {
+            bubble.remove();
+          }
+        }, duration);
+      }
+    }
+    
+    // Tạo khói
+    function createSmoke() {
+      for (let i = 0; i < 5; i++) {
+        let smoke = document.createElement("div");
+        smoke.className = "smoke";
+        
+        const size = Math.random() * 40 + 30;
+        
+        smoke.style.width = `${size}px`;
+        smoke.style.height = `${size}px`;
+        
+        cauldron.appendChild(smoke);
+        
+        const duration = Math.random() * 2500 + 2000;
+        smoke.style.animationDuration = `${duration}ms`;
+        
+        setTimeout(() => {
+          if (smoke.parentNode) {
+            smoke.remove();
+          }
+        }, duration);
+      }
+    }
+
+    // Khởi tạo game khi trang được tải
+    window.onload = initGame;
+  </script>
+</body>
+</html>

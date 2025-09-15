@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Đếm Số trong Nồi Phù Thủy</title>
+  <title>Game Đếm Số trong Nồi Phù Thủy - Nhiều Cấp Độ</title>
   <style>
     * {
       box-sizing: border-box;
@@ -36,13 +36,81 @@
       font-size: 2.5rem;
     }
     
+    .level-info {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .level-display {
+      background: linear-gradient(135deg, #2d1b69, #1a0e3a);
+      border: 2px solid #8c52ff;
+      border-radius: 15px;
+      padding: 10px 20px;
+      box-shadow: 0 0 20px rgba(140, 82, 255, 0.5);
+    }
+    
+    .level-display h3 {
+      color: #ff6b8b;
+      font-size: 1.2rem;
+      margin-bottom: 5px;
+    }
+    
+    .level-display p {
+      color: #a9d6e5;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+    
     .instructions {
       color: #a9d6e5;
       margin-bottom: 30px;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       max-width: 600px;
       margin-left: auto;
       margin-right: auto;
+    }
+    
+    .level-progress {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .progress-dot {
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background: #333;
+      border: 2px solid #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    
+    .progress-dot.completed {
+      background: #2ecc71;
+      border-color: #27ae60;
+      box-shadow: 0 0 10px rgba(46, 204, 113, 0.7);
+    }
+    
+    .progress-dot.current {
+      background: #f1c40f;
+      border-color: #f39c12;
+      box-shadow: 0 0 10px rgba(241, 196, 15, 0.7);
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
     }
     
     .game-area {
@@ -117,7 +185,7 @@
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 20px;
+      gap: 15px;
       margin-top: 20px;
       max-width: 700px;
       margin-left: auto;
@@ -135,8 +203,8 @@
     }
     
     .ingredient {
-      width: 80px;
-      height: 80px;
+      width: 70px;
+      height: 70px;
       background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
       border: 2px solid #8c52ff;
       border-radius: 50%;
@@ -145,13 +213,8 @@
       justify-content: center;
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), 0 0 10px rgba(140, 82, 255, 0.5);
       overflow: hidden;
-    }
-    
-    .ingredient img {
-      width: 70%;
-      height: 70%;
-      object-fit: contain;
-      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+      font-size: 18px;
+      font-weight: bold;
     }
     
     .ingredient-number {
@@ -160,15 +223,44 @@
       right: -8px;
       background: #ff6b8b;
       color: white;
-      width: 30px;
-      height: 30px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 16px;
+      font-size: 14px;
       box-shadow: 0 0 10px rgba(255, 107, 139, 0.7);
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      background: linear-gradient(to right, #ff6b8b, #ff9e44);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      font-size: 1.1rem;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    .btn.secondary {
+      background: linear-gradient(to right, #6c5ce7, #a29bfe);
     }
     
     /* Hiệu ứng pháo hoa */
@@ -233,36 +325,39 @@
       text-shadow: 0 0 10px rgba(255, 107, 107, 0.7);
     }
     
-    .shuffle-btn {
-      background: linear-gradient(to right, #ff6b8b, #ff9e44);
-      color: white;
-      border: none;
-      padding: 12px 25px;
-      font-size: 1.1rem;
-      border-radius: 30px;
-      cursor: pointer;
-      margin-top: 20px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-    
-    .shuffle-btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    .level-complete {
+      color: #ffd700;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+      font-size: 1.8rem;
     }
     
     @media (max-width: 600px) {
       .ingredients {
-        gap: 15px;
+        gap: 12px;
       }
       
       .ingredient {
-        width: 70px;
-        height: 70px;
+        width: 60px;
+        height: 60px;
+        font-size: 16px;
+      }
+      
+      .ingredient-number {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
       }
       
       h1 {
         font-size: 2rem;
+      }
+      
+      .level-info {
+        gap: 15px;
+      }
+      
+      .controls {
+        gap: 10px;
       }
     }
   </style>
@@ -270,7 +365,25 @@
 <body>
   <div class="container">
     <h1>🔮 Game Nồi Phù Thủy</h1>
-    <p class="instructions">Thêm lần lượt các nguyên liệu từ 1 → 10 theo đúng thứ tự vào nồi!</p>
+    
+    <div class="level-info">
+      <div class="level-display">
+        <h3>Cấp độ</h3>
+        <p id="current-level">1</p>
+      </div>
+      <div class="level-display">
+        <h3>Phạm vi</h3>
+        <p id="number-range">1 - 10</p>
+      </div>
+      <div class="level-display">
+        <h3>Tiến độ</h3>
+        <p id="progress">0/10</p>
+      </div>
+    </div>
+    
+    <p class="instructions">Thêm lần lượt các nguyên liệu theo đúng thứ tự số vào nồi!</p>
+    
+    <div class="level-progress" id="level-progress"></div>
 
     <div class="game-area">
       <div id="cauldron">
@@ -283,11 +396,15 @@
       </div>
     </div>
 
-    <div id="result">Hãy bắt đầu với nguyên liệu số 1!</div>
+    <div id="result">Hãy bắt đầu với số đầu tiên!</div>
 
     <div class="ingredients" id="ingredients"></div>
     
-    <button class="shuffle-btn" id="shuffle-btn">🔀 Đảo Thứ Tự Nguyên Liệu</button>
+    <div class="controls">
+      <button class="btn" id="shuffle-btn">🔀 Đảo Thứ Tự</button>
+      <button class="btn secondary" id="restart-btn">🔄 Chơi Lại Cấp Độ</button>
+      <button class="btn secondary" id="reset-btn">🏠 Về Cấp 1</button>
+    </div>
   </div>
 
   <script>
@@ -296,22 +413,78 @@
     const result = document.getElementById("result");
     const ingredientsDiv = document.getElementById("ingredients");
     const shuffleBtn = document.getElementById("shuffle-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const resetBtn = document.getElementById("reset-btn");
+    const currentLevelDisplay = document.getElementById("current-level");
+    const numberRangeDisplay = document.getElementById("number-range");
+    const progressDisplay = document.getElementById("progress");
+    const levelProgressDiv = document.getElementById("level-progress");
 
-    let current = 1; // Số hiện tại phải chọn
+    let currentLevel = 1; // Cấp độ hiện tại
+    let currentNumber = 1; // Số hiện tại trong cấp độ (1-10)
     let ingredientOrder = []; // Thứ tự các nguyên liệu
+    let levelStartNumber = 1; // Số bắt đầu của cấp độ
+    let levelEndNumber = 10; // Số kết thúc của cấp độ
 
     const colors = [
       "#3498db", "#2ecc71", "#f1c40f", "#e67e22", "#e74c3c",
       "#9b59b6", "#1abc9c", "#ff66cc", "#ffffff", "#00ff88"
     ];
 
+    const levelColors = [
+      "#3498db", "#2ecc71", "#f1c40f", "#e67e22", "#e74c3c",
+      "#9b59b6", "#1abc9c", "#ff66cc", "#fd79a8", "#00cec9"
+    ];
+
     // Khởi tạo game
     function initGame() {
-      // Tạo mảng số từ 1 đến 10
-      ingredientOrder = Array.from({length: 10}, (_, i) => i + 1);
-      // Đảo thứ tự ngẫu nhiên
+      updateLevelInfo();
+      createLevelNumbers();
       shuffleArray(ingredientOrder);
       renderIngredients();
+      updateProgressDisplay();
+    }
+
+    // Cập nhật thông tin cấp độ
+    function updateLevelInfo() {
+      levelStartNumber = (currentLevel - 1) * 10 + 1;
+      levelEndNumber = currentLevel * 10;
+      
+      currentLevelDisplay.textContent = currentLevel;
+      numberRangeDisplay.textContent = `${levelStartNumber} - ${levelEndNumber}`;
+      
+      // Thay đổi màu nền theo cấp độ
+      const levelColor = levelColors[(currentLevel - 1) % levelColors.length];
+      liquid.style.background = `linear-gradient(to top, ${levelColor}80, ${levelColor}40)`;
+    }
+
+    // Tạo mảng số cho cấp độ hiện tại
+    function createLevelNumbers() {
+      ingredientOrder = [];
+      for (let i = levelStartNumber; i <= levelEndNumber; i++) {
+        ingredientOrder.push(i);
+      }
+    }
+
+    // Cập nhật thanh tiến độ
+    function updateProgressDisplay() {
+      progressDisplay.textContent = `${currentNumber - 1}/10`;
+      
+      // Tạo các chấm tiến độ
+      levelProgressDiv.innerHTML = '';
+      for (let i = 1; i <= 10; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'progress-dot';
+        dot.textContent = i;
+        
+        if (i < currentNumber) {
+          dot.classList.add('completed');
+        } else if (i === currentNumber) {
+          dot.classList.add('current');
+        }
+        
+        levelProgressDiv.appendChild(dot);
+      }
     }
 
     // Đảo thứ tự mảng
@@ -324,60 +497,51 @@
 
     // Hiển thị các nguyên liệu
     function renderIngredients() {
-      ingredientsDiv.innerHTML = '';
-      
-      ingredientOrder.forEach((number, index) => {
-        let container = document.createElement("div");
-        container.className = "ingredient-container";
-        container.dataset.item = number;
-        
-        let ingredientDiv = document.createElement("div");
-        ingredientDiv.className = "ingredient";
-        
-        // Tạo hình ảnh nguyên liệu
-        let img = document.createElement("img");
-        img.src = `nguyenlieu${number}.png`;
-        img.alt = `Nguyên liệu ${number}`;
-        img.onerror = function() {
-          // Nếu hình ảnh không tải được, hiển thị số thay thế
-          this.style.display = 'none';
-          let fallback = document.createElement('div');
-          fallback.textContent = number;
-          fallback.style.fontSize = '24px';
-          fallback.style.fontWeight = 'bold';
-          fallback.style.color = colors[number-1];
-          ingredientDiv.appendChild(fallback);
-        };
-        
-        ingredientDiv.appendChild(img);
-        
-        // Thêm số nhỏ trên góc
-        let numberBadge = document.createElement("div");
-        numberBadge.className = "ingredient-number";
-        numberBadge.textContent = number;
-        
-        container.appendChild(ingredientDiv);
-        container.appendChild(numberBadge);
-        ingredientsDiv.appendChild(container);
+  ingredientsDiv.innerHTML = '';
+  
+  ingredientOrder.forEach((number, index) => {
+    let container = document.createElement("div");
+    container.className = "ingredient-container";
+    container.dataset.item = number;
+    
+    let ingredientDiv = document.createElement("div");
+    ingredientDiv.className = "ingredient";
+    
+    // Thay số bằng ảnh
+    let img = document.createElement("img");
+    img.src = `nguyenlieu${(number - levelStartNumber + 1)}.png`;
+    img.alt = `Nguyên liệu ${number}`;
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    ingredientDiv.appendChild(img);
+
+    // Số nhỏ hiển thị ở góc (để biết đây là số mấy)
+    let numberBadge = document.createElement("div");
+    numberBadge.className = "ingredient-number";
+    numberBadge.textContent = number;
+    
+    container.appendChild(ingredientDiv);
+    container.appendChild(numberBadge);
+    ingredientsDiv.appendChild(container);
 
         container.addEventListener("click", () => {
           let item = parseInt(container.dataset.item);
+          let expectedNumber = levelStartNumber + currentNumber - 1;
 
-          if (item === current) {
-            // Thay đổi màu chất lỏng trong nồi - SỬA Ở ĐÂY
-            // Mỗi lần thêm nguyên liệu, mực nước tăng 10%
-            liquid.style.height = `${current * 10}%`;
-            liquid.style.background = `linear-gradient(to top, ${colors[current-1]}80, ${colors[current-1]}40)`;
+          if (item === expectedNumber) {
+            // Thay đổi màu chất lỏng trong nồi
+            const levelColor = levelColors[(currentLevel - 1) % levelColors.length];
+            liquid.style.height = `${currentNumber * 10}%`;
+            liquid.style.background = `linear-gradient(to top, ${levelColor}80, ${levelColor}40)`;
             
-            // Tạo bong bóng
+            // Tạo bong bóng và khói
             createBubbles();
-            
-            // Tạo khói
             createSmoke();
             
             // Thêm hình ảnh nguyên liệu rơi vào nồi
             let drop = document.createElement("img");
-            drop.src = `nguyenlieu${current}.png`;
+            drop.src = `nguyenlieu${expectedNumber}.png`;
             drop.style.position = "absolute";
             drop.style.left = Math.random()*200 + "px";
             drop.style.top = Math.random()*140 + "px";
@@ -389,60 +553,72 @@
               // Nếu hình ảnh không tải được, hiển thị số thay thế
               this.style.display = 'none';
               let fallback = document.createElement('div');
-              fallback.textContent = current;
+              fallback.textContent = expectedNumber;
               fallback.style.position = "absolute";
               fallback.style.left = Math.random()*200 + "px";
               fallback.style.top = Math.random()*140 + "px";
               fallback.style.fontSize = '24px';
               fallback.style.fontWeight = 'bold';
-              fallback.style.color = colors[current-1];
+              fallback.style.color = colors[(expectedNumber - 1) % colors.length];
+              fallback.style.zIndex = "5";
+              fallback.style.textShadow = "0 0 10px rgba(255,255,255,0.8)";
               cauldron.appendChild(fallback);
             };
             cauldron.appendChild(drop);
 
-            // Hiệu ứng pháo hoa tại tâm nồi
+            // Hiệu ứng pháo hoa
             fireworks(140, 100);
 
-            if (current === 10) {
-              result.textContent = "🎉 Chúc mừng! Bạn đã hoàn thành câu thần chú!";
-              result.className = "success";
-              setTimeout(resetGame, 3000);
+            if (currentNumber === 10) {
+              // Hoàn thành cấp độ
+              result.textContent = `🎉 Hoàn thành cấp độ ${currentLevel}!`;
+              result.className = "level-complete";
+              
+              setTimeout(() => {
+                currentLevel++;
+                currentNumber = 1;
+                
+                if (currentLevel <= 10) { // Giới hạn 10 cấp độ (1-100)
+                  result.textContent = `🌟 Chuyển sang cấp độ ${currentLevel}!`;
+                  setTimeout(() => {
+                    resetLevel();
+                  }, 2000);
+                } else {
+                  result.textContent = "🏆 Chúc mừng! Bạn đã hoàn thành tất cả cấp độ!";
+                  setTimeout(() => {
+                    currentLevel = 1;
+                    currentNumber = 1;
+                    resetLevel();
+                  }, 5000);
+                }
+              }, 2000);
             } else {
-              result.textContent = `Tiếp tục! Thêm nguyên liệu số ${current + 1}`;
+              currentNumber++;
+              let nextNumber = levelStartNumber + currentNumber - 1;
+              result.textContent = `Tiếp tục! Thêm số ${nextNumber}`;
               result.className = "";
+              updateProgressDisplay();
             }
-            current++;
           } else {
-            result.textContent = "❌ Sai rồi! Phép thuật thất bại, hãy bắt đầu lại!";
+            let expectedNumber = levelStartNumber + currentNumber - 1;
+            result.textContent = `❌ Sai rồi! Cần số ${expectedNumber}. Hãy thử lại!`;
             result.className = "error";
             liquid.style.background = "linear-gradient(to top, #ff000080, #ff000040)";
-            setTimeout(resetGame, 2000);
+            setTimeout(() => {
+              resetLevel();
+            }, 2000);
           }
         });
       });
     }
 
-    // Nút đảo thứ tự
-    shuffleBtn.addEventListener("click", () => {
-      shuffleArray(ingredientOrder);
-      renderIngredients();
-      result.textContent = "Thứ tự nguyên liệu đã được đảo! Hãy tiếp tục...";
-      setTimeout(() => {
-        if (current === 1) {
-          result.textContent = "Hãy bắt đầu với nguyên liệu số 1!";
-        } else {
-          result.textContent = `Tiếp tục với nguyên liệu số ${current}`;
-        }
-      }, 1500);
-    });
-
-    function resetGame() {
-      current = 1;
-      result.textContent = "Hãy bắt đầu với nguyên liệu số 1!";
-      result.className = "";
+    // Reset cấp độ hiện tại
+    function resetLevel() {
+      currentNumber = 1;
       liquid.style.height = "0";
+      result.className = "";
       
-      // Xóa tất cả các nguyên liệu trong nồi
+      // Xóa tất cả các số trong nồi
       let children = cauldron.children;
       for (let i = children.length - 1; i >= 0; i--) {
         if (children[i].id !== "liquid") {
@@ -450,10 +626,41 @@
         }
       }
       
-      // Đảo thứ tự nguyên liệu khi reset game
+      updateLevelInfo();
+      createLevelNumbers();
       shuffleArray(ingredientOrder);
       renderIngredients();
+      updateProgressDisplay();
+      
+      let startNumber = levelStartNumber;
+      result.textContent = `Hãy bắt đầu với số ${startNumber}!`;
     }
+
+    // Reset về cấp độ 1
+    function resetToLevel1() {
+      currentLevel = 1;
+      currentNumber = 1;
+      resetLevel();
+    }
+
+    // Event listeners
+    shuffleBtn.addEventListener("click", () => {
+      shuffleArray(ingredientOrder);
+      renderIngredients();
+      result.textContent = "Thứ tự đã được đảo! Hãy tiếp tục...";
+      setTimeout(() => {
+        let expectedNumber = levelStartNumber + currentNumber - 1;
+        result.textContent = `Tiếp tục với số ${expectedNumber}`;
+      }, 1500);
+    });
+
+    restartBtn.addEventListener("click", () => {
+      resetLevel();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      resetToLevel1();
+    });
 
     // Tạo hiệu ứng pháo hoa
     function fireworks(x, y) {

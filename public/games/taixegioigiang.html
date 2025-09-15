@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bãi Đỗ Xe 2D</title>
+  <title>Bãi Đỗ Xe 2D - 20 Xe</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&display=swap');
     
@@ -93,28 +93,35 @@
     
     .ground {
       position: absolute;
-      top: 60%;
+      top: 50%;
       left: 50%;
       transform: translateX(-50%);
       width: 800px;
-      height: 150px;
+      height: 320px;
       background: #34495e;
       border-radius: 10px;
       box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     }
     
-    .parking-spaces {
+    .parking-container {
       position: absolute;
-      top: 60%;
+      top: 50%;
       left: 50%;
       transform: translateX(-50%);
       width: 800px;
-      height: 150px;
+      height: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+      z-index: 10;
+    }
+    
+    .parking-row {
       display: grid;
       grid-template-columns: repeat(10, 1fr);
       gap: 5px;
-      padding: 10px;
-      z-index: 10;
+      height: 145px;
     }
     
     .parking-space {
@@ -184,7 +191,7 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     
-    /* Car images */
+    /* Car images for cars 1-10 */
     .car-1 { background-image: url('car1.png'); }
     .car-2 { background-image: url('car2.png'); }
     .car-3 { background-image: url('car3.png'); }
@@ -196,7 +203,17 @@
     .car-9 { background-image: url('car9.png'); }
     .car-10 { background-image: url('car10.png'); }
     
-    
+    /* Car images for cars 11-20 (cycling through designs) */
+    .car-11 { background-image: url('car1.png'); }
+    .car-12 { background-image: url('car2.png'); }
+    .car-13 { background-image: url('car3.png'); }
+    .car-14 { background-image: url('car4.png'); }
+    .car-15 { background-image: url('car5.png'); }
+    .car-16 { background-image: url('car6.png'); }
+    .car-17 { background-image: url('car7.png'); }
+    .car-18 { background-image: url('car8.png'); }
+    .car-19 { background-image: url('car9.png'); }
+    .car-20 { background-image: url('car10.png'); }
     
     @keyframes glow {
       0%, 100% { 
@@ -252,7 +269,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 50%;
+      height: 40%;
       z-index: -1;
     }
     
@@ -321,12 +338,13 @@
       border-radius: 25px;
       font-size: 14px;
       z-index: 1000;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <div class="hud">
-    <h1>🏢 Parking King</h1>
+    <h1>🏢 Parking King - 20 Cars</h1>
     <div class="stats">
       <div class="stat">🎯 Xe: <span id="target">1</span></div>
       <div class="stat">⏱️ <span id="timer">0.000</span>s</div>
@@ -359,12 +377,15 @@
     <!-- Ground -->
     <div class="ground"></div>
     
-    <!-- Parking spaces -->
-    <div class="parking-spaces" id="parkingSpaces"></div>
+    <!-- Parking spaces container -->
+    <div class="parking-container" id="parkingContainer">
+      <div class="parking-row" id="parkingRow1"></div>
+      <div class="parking-row" id="parkingRow2"></div>
+    </div>
   </div>
 
   <div class="instructions">
-    🚗 Đỗ xe theo thứ tự 1→10 | Phím: 1-9, 0 (xe 10) | Click chuột hoặc chạm màn hình
+    🚗 Đỗ xe theo thứ tự 1→20 | Phím: 1-9, 0 (xe 10), Q-I (xe 11-19), P (xe 20) | Click chuột hoặc chạm màn hình
   </div>
 
   <div class="success-modal" id="successModal">
@@ -374,7 +395,8 @@
 <script>
 (function(){
   const parkingLot = document.querySelector('.parking-lot');
-  const parkingSpaces = document.getElementById('parkingSpaces');
+  const parkingRow1 = document.getElementById('parkingRow1');
+  const parkingRow2 = document.getElementById('parkingRow2');
   const targetEl = document.getElementById('target');
   const timerEl = document.getElementById('timer');
   const mistakesEl = document.getElementById('mistakes');
@@ -392,13 +414,25 @@
   function rand(min, max){ return Math.floor(Math.random()*(max-min+1))+min }
 
   function createParkingSpaces(){
-    parkingSpaces.innerHTML = '';
+    parkingRow1.innerHTML = '';
+    parkingRow2.innerHTML = '';
     spaces = [];
+    
+    // Create spaces 1-10 in first row
     for(let i = 1; i <= 10; i++){
       const space = document.createElement('div');
       space.className = 'parking-space';
       space.dataset.number = i;
-      parkingSpaces.appendChild(space);
+      parkingRow1.appendChild(space);
+      spaces.push(space);
+    }
+    
+    // Create spaces 11-20 in second row
+    for(let i = 11; i <= 20; i++){
+      const space = document.createElement('div');
+      space.className = 'parking-space';
+      space.dataset.number = i;
+      parkingRow2.appendChild(space);
       spaces.push(space);
     }
   }
@@ -411,7 +445,7 @@
     const lotRect = parkingLot.getBoundingClientRect();
     const used = [];
     
-    for(let i = 1; i <= 10; i++){
+    for(let i = 1; i <= 20; i++){
       const car = document.createElement('div');
       car.className = `car car-${i}`;
       car.dataset.num = i;
@@ -422,7 +456,7 @@
       
       do {
         x = rand(50, window.innerWidth - carWidth - 50);
-        y = rand(120, window.innerHeight * 0.5); // Avoid parking area
+        y = rand(120, window.innerHeight * 0.35); // Avoid parking area
         attempts++;
         
         // Check collision with other cars
@@ -432,7 +466,7 @@
         );
         
         if(!collision) break;
-      } while(attempts < 50);
+      } while(attempts < 100);
       
       used.push({x, y});
       car.style.left = x + 'px';
@@ -450,7 +484,7 @@
 
   function updateNextTarget(){
     cars.forEach(car => car.classList.remove('next-target'));
-    if(target <= 10){
+    if(target <= 20){
       const nextCar = cars.find(car => 
         Number(car.dataset.num) === target && 
         !car.classList.contains('parked')
@@ -489,10 +523,10 @@
       }, 500);
 
       target++;
-      targetEl.textContent = target <= 10 ? target : '✅';
+      targetEl.textContent = target <= 20 ? target : '✅';
       updateNextTarget();
       
-      if(target > 10){
+      if(target > 20){
         stopTimer();
         const total = ((performance.now() - startTime)/1000).toFixed(3);
         setTimeout(() => {
@@ -500,7 +534,7 @@
             🎉 Xuất sắc!<br>
             ⏱️ Hoàn thành trong: ${total}s<br>
             ❌ Số lần sai: ${mistakes}<br>
-            🏆 Bạn là tài xế giỏi!
+            🏆 Bạn là tài xế chuyên nghiệp!
           `;
           successModal.classList.add('show');
           setTimeout(() => successModal.classList.remove('show'), 5000);
@@ -551,7 +585,7 @@
       
       do {
         x = rand(50, window.innerWidth - carWidth - 50);
-        y = rand(120, window.innerHeight * 0.5);
+        y = rand(120, window.innerHeight * 0.35);
         attempts++;
         
         const collision = used.some(pos => 
@@ -560,7 +594,7 @@
         );
         
         if(!collision) break;
-      } while(attempts < 50);
+      } while(attempts < 100);
       
       used.push({x, y});
       car.style.left = x + 'px';
@@ -574,10 +608,21 @@
 
   // Keyboard controls
   document.addEventListener('keydown', e => {
-    const k = e.key;
+    const k = e.key.toLowerCase();
     let pressed = null;
+    
+    // Numbers 1-9
     if(k >= '1' && k <= '9') pressed = Number(k);
+    // 0 for car 10
     if(k === '0') pressed = 10;
+    
+    // Letters for cars 11-20
+    const letterMap = {
+      'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15,
+      'y': 16, 'u': 17, 'i': 18, 'o': 19, 'p': 20
+    };
+    if(letterMap[k]) pressed = letterMap[k];
+    
     if(pressed !== null){
       const car = cars.find(c => 
         Number(c.dataset.num) === pressed && 

@@ -154,8 +154,8 @@
     <div id="guide">← → để di chuyển | Space hoặc ↓ để thả cần</div>
     <div id="message"></div>
     <div id="score">Điểm: 0</div>
-    <div id="target"></div>
-    <canvas id="gameCanvas" width="800" height="300"></canvas>
+    <div id="target">Cần câu số: 1</div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
   </div>
   
   <div id="controller">
@@ -194,6 +194,10 @@
     let currentTarget = 1;
     let gameOver = false;
 
+    // Xác định ranh giới nước
+    const waterLevel = 100;
+    let waveOffset = 0;
+
     // Tạo bong bóng với chuyển động chậm hơn và tự nhiên
     let bubbles = [];
     function initBubbles() {
@@ -201,7 +205,7 @@
       for (let i = 0; i < 15; i++) {
         bubbles.push({
           x: Math.random() * canvas.width,
-          y: canvas.height + Math.random() * 100,
+          y: waterLevel + Math.random() * (canvas.height - waterLevel),
           size: Math.random() * 8 + 3,
           speed: Math.random() * 0.8 + 0.3,
           opacity: Math.random() * 0.6 + 0.2,
@@ -217,8 +221,8 @@
         bubble.x += Math.sin(bubble.y * bubble.wobble) * 0.5;
         
         // Reset bong bóng khi ra khỏi màn hình
-        if (bubble.y < -bubble.size) {
-          bubble.y = canvas.height + Math.random() * 50;
+        if (bubble.y < waterLevel) {
+          bubble.y = canvas.height - Math.random() * 50;
           bubble.x = Math.random() * canvas.width;
           bubble.size = Math.random() * 8 + 3;
           bubble.speed = Math.random() * 0.8 + 0.3;
@@ -264,7 +268,7 @@
     for (let i = 1; i <= 10; i++) {
       fishes.push({
         x: Math.random() * (canvas.width - 80) + 40,
-        y: Math.random() * (canvas.height - 150) + 100,
+        y: waterLevel + 20 + Math.random() * (canvas.height - waterLevel - 70),
         vx: (Math.random() - 0.5) * 2,
         vy: (Math.random() - 0.5) * 1.5,
         size: 30,
@@ -277,37 +281,157 @@
 
     let caughtFish = null;
 
-    // Vẽ cần câu đẹp hơn
-    function drawClaw() {
-      // Vẽ dây câu với gradient
-      const ropeGradient = ctx.createLinearGradient(clawX - 2, 0, clawX + 2, ropeLength);
-      ropeGradient.addColorStop(0, "#8b4513");
-      ropeGradient.addColorStop(1, "#d2691e");
-      ctx.fillStyle = ropeGradient;
-      ctx.fillRect(clawX - 2, 0, 4, ropeLength);
+    // Vẽ ranh giới nước với hiệu ứng sóng
+    function drawWaterSurface() {
+      ctx.save();
       
-      // Vẽ thanh ngang cần câu
-      const clawGradient = ctx.createLinearGradient(
-        clawX - clawWidth / 2, ropeLength,
-        clawX + clawWidth / 2, ropeLength + clawHeight
-      );
-      clawGradient.addColorStop(0, "#b0c4de");
-      clawGradient.addColorStop(0.5, "#778899");
-      clawGradient.addColorStop(1, "#696969");
+      // Tạo gradient cho mặt nước
+      const waterSurfaceGradient = ctx.createLinearGradient(0, waterLevel - 10, 0, waterLevel + 10);
+      waterSurfaceGradient.addColorStop(0, "rgba(173, 216, 230, 0.6)");
+      waterSurfaceGradient.addColorStop(0.5, "rgba(135, 206, 250, 0.8)");
+      waterSurfaceGradient.addColorStop(1, "rgba(135, 206, 250, 0.4)");
       
-      ctx.fillStyle = clawGradient;
+      ctx.fillStyle = waterSurfaceGradient;
       ctx.beginPath();
-      ctx.roundRect(clawX - clawWidth / 2, ropeLength, clawWidth, clawHeight, 3);
+      
+      // Vẽ đường sóng
+      ctx.moveTo(0, waterLevel);
+      for (let x = 0; x < canvas.width; x += 10) {
+        const y = waterLevel + Math.sin(x * 0.05 + waveOffset) * 3;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(canvas.width, waterLevel);
+      ctx.lineTo(canvas.width, waterLevel + 10);
+      ctx.lineTo(0, waterLevel + 10);
+      ctx.closePath();
       ctx.fill();
       
-      // Thêm viền cho thanh ngang
-      ctx.strokeStyle = "#2f4f4f";
+      // Vẽ hiệu ứng ánh sáng trên mặt nước
+      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.beginPath();
+      ctx.moveTo(0, waterLevel);
+      for (let x = 0; x < canvas.width; x += 15) {
+        const y = waterLevel + Math.sin(x * 0.03 + waveOffset * 1.5) * 2;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(canvas.width, waterLevel);
+      ctx.lineTo(canvas.width, waterLevel + 5);
+      ctx.lineTo(0, waterLevel + 5);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.restore();
+    }
+
+    // Vẽ thuyền câu cá với nhân vật
+    function drawBoat() {
+      const boatX = clawX - 40;
+      const boatY = waterLevel - 35;
+      
+      // Thân thuyền với gradient
+      const boatGradient = ctx.createLinearGradient(boatX, boatY, boatX, boatY + 25);
+      boatGradient.addColorStop(0, "#8B4513");
+      boatGradient.addColorStop(0.3, "#D2691E");
+      boatGradient.addColorStop(1, "#654321");
+      
+      ctx.fillStyle = boatGradient;
+      ctx.beginPath();
+      ctx.moveTo(boatX, boatY + 25);
+      ctx.quadraticCurveTo(boatX - 5, boatY + 30, boatX + 10, boatY + 30);
+      ctx.lineTo(boatX + 70, boatY + 30);
+      ctx.quadraticCurveTo(boatX + 85, boatY + 30, boatX + 80, boatY + 25);
+      ctx.lineTo(boatX + 75, boatY + 10);
+      ctx.lineTo(boatX + 5, boatY + 10);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Viền thuyền
+      ctx.strokeStyle = "#5D4E37";
       ctx.lineWidth = 2;
       ctx.stroke();
       
-      // Vẽ móc câu đẹp hơn
+      // Cabin thuyền
+      ctx.fillStyle = "#FF6B47";
+      ctx.fillRect(boatX + 15, boatY - 5, 25, 15);
+      
+      // Cửa sổ cabin
+      ctx.fillStyle = "#87CEEB";
+      ctx.fillRect(boatX + 18, boatY - 2, 8, 6);
+      ctx.fillRect(boatX + 30, boatY - 2, 8, 6);
+      
+      // Ống khói với khói
+      ctx.fillStyle = "#696969";
+      ctx.fillRect(boatX + 45, boatY - 12, 4, 10);
+      
+      // Khói bay
+      ctx.fillStyle = "rgba(200, 200, 200, 0.6)";
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(boatX + 47 + i * 3, boatY - 15 - i * 5, 2 + i, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Vẽ nhân vật ngồi câu cá
+      drawFisherman(boatX + 60, boatY + 5);
+      
+      // Cần câu
+      ctx.strokeStyle = "#8B4513";
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(boatX + 60, boatY + 5);
+      ctx.lineTo(clawX, waterLevel + 20);
+      ctx.stroke();
+      
+      // Máy câu (reel)
+      ctx.fillStyle = "#C0C0C0";
+      ctx.beginPath();
+      ctx.arc(boatX + 60, boatY + 5, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Vẽ người câu cá
+    function drawFisherman(x, y) {
+      // Đầu
+      ctx.fillStyle = "#FFDAB9";
+      ctx.beginPath();
+      ctx.arc(x, y - 10, 6, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Mắt
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(x - 2, y - 11, 1, 0, Math.PI * 2);
+      ctx.arc(x + 2, y - 11, 1, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Thân
+      ctx.fillStyle = "#1E90FF";
+      ctx.fillRect(x - 5, y - 4, 10, 10);
+      
+      // Mũ
+      ctx.fillStyle = "#FF0000";
+      ctx.beginPath();
+      ctx.arc(x, y - 16, 5, 0, Math.PI, true);
+      ctx.fill();
+      
+      // Tay cầm cần
+      ctx.fillStyle = "#FFDAB9";
+      ctx.fillRect(x - 2, y - 4, 4, 4);
+    }
+
+    // Vẽ cần câu đã bỏ thanh xám
+    function drawClaw() {
+      // Vẽ dây câu với gradient
+      const ropeGradient = ctx.createLinearGradient(clawX - 2, waterLevel + 20, clawX + 2, ropeLength);
+      ropeGradient.addColorStop(0, "#bebebe");
+      ropeGradient.addColorStop(1, "#686868");
+      ctx.fillStyle = ropeGradient;
+      ctx.fillRect(clawX - 2, waterLevel + 20, 4, ropeLength - (waterLevel + 20));
+      
+      // Vẽ móc câu đẹp hơn (bỏ thanh ngang màu xám)
       const hookX = clawX;
-      const hookY = ropeLength + clawHeight;
+      const hookY = ropeLength; // Móc nối trực tiếp với dây
       
       // Phần thẳng của móc
       ctx.strokeStyle = "#dc143c";
@@ -420,8 +544,8 @@
             fish.vx *= -1;
           }
           
-          if (fish.y < 100) {
-            fish.y = 100;
+          if (fish.y < waterLevel + 10) {
+            fish.y = waterLevel + 10;
             fish.vy *= -1;
           } else if (fish.y > canvas.height - fish.size / 2) {
             fish.y = canvas.height - fish.size / 2;
@@ -454,12 +578,12 @@
       });
     }
 
-    // Cập nhật cần câu
+    // Cập nhật cần câu (điều chỉnh vị trí móc)
     function updateClaw() {
       if (isDropping && !gameOver) {
         ropeLength += 5;
         let clawTipX = clawX;
-        let clawTipY = ropeLength + clawHeight + 15;
+        let clawTipY = ropeLength + 15; // Điều chỉnh vị trí móc
 
         if (ropeLength > canvas.height - 50) {
           isDropping = false;
@@ -481,7 +605,7 @@
                 score += 10;
                 scoreElement.innerText = "Điểm: " + score;
                 currentTarget++;
-                targetElement.innerText = "";
+                targetElement.innerText = currentTarget <= 10 ? "Cần câu số: " + currentTarget : "";
                 
                 if (currentTarget > 10) {
                   gameOver = true;
@@ -501,9 +625,9 @@
         ropeLength -= 5;
         if (caughtFish) {
           caughtFish.x = clawX;
-          caughtFish.y = ropeLength + clawHeight + 15 + caughtFish.size / 2;
+          caughtFish.y = ropeLength + 15 + caughtFish.size / 2; // Điều chỉnh vị trí cá bị câu
         }
-        if (ropeLength <= 50) {
+        if (ropeLength <= waterLevel + 20) {
           isReturning = false;
           if (caughtFish) {
             messageBox.innerText = "Bạn đã câu được số " + caughtFish.num;
@@ -573,9 +697,14 @@
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
+      // Cập nhật hiệu ứng sóng
+      waveOffset += 0.1;
+      
       updateBubbles();
       drawBubbles();
       drawSeaBottom();
+      drawWaterSurface(); // Vẽ ranh giới nước
+      drawBoat();
       drawFishes();
       drawClaw();
       if (!gameOver) {
@@ -625,7 +754,7 @@
     
     function restartGame() {
       clawX = 250;
-      ropeLength = 50;
+      ropeLength = waterLevel + 20;
       isDropping = false;
       isReturning = false;
       score = 0;
@@ -643,7 +772,7 @@
       for (let i = 1; i <= 10; i++) {
         fishes.push({
           x: Math.random() * (canvas.width - 80) + 40,
-          y: Math.random() * (canvas.height - 150) + 100,
+          y: waterLevel + 20 + Math.random() * (canvas.height - waterLevel - 70),
           vx: (Math.random() - 0.5) * 2,
           vy: (Math.random() - 0.5) * 1.5,
           size: 30,
@@ -660,6 +789,7 @@
 
     // Khởi động game
     initBubbles();
+    targetElement.innerText = "Cần câu số: 1";
     gameLoop();
   </script>
 </body>

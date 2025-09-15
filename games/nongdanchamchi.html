@@ -370,7 +370,7 @@ function onClickApple(el, num) {
   const dx = basketRect.left + basketRect.width/2 - (appleRect.left + appleRect.width/2);
   const dy = basketRect.top + basketRect.height/2 - (appleRect.top + appleRect.height/2);
 
-  el.style.transition = "transform 0.8s ease-in-out, opacity 0.8s";
+  el.style.transition = "transform 1.5s, opacity 1.2s";
   el.style.transform = `translate(${dx}px, ${dy}px) scale(0.3)`;
   el.style.opacity = "0";
   el.style.pointerEvents = "none";

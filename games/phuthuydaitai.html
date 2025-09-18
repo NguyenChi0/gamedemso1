@@ -201,10 +201,12 @@
     .ingredient-container:hover {
       transform: translateY(-5px);
     }
+
+    
     
     .ingredient {
-      width: 70px;
-      height: 70px;
+      width: 90px;
+      height: 90px;
       background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
       border: 2px solid #8c52ff;
       border-radius: 50%;
@@ -233,7 +235,19 @@
       font-size: 14px;
       box-shadow: 0 0 10px rgba(255, 107, 139, 0.7);
     }
-    
+
+      .ingredient img {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
+  /* Ánh sáng trắng phát quanh */
+   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))
+          drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+  border-radius: 12px;
+}
+
+
+
     .controls {
       display: flex;
       justify-content: center;

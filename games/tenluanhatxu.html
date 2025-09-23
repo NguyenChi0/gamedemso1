@@ -32,7 +32,7 @@
     }
     #phase-indicator {
       position: absolute;
-      top: 60px;
+      top: 120px;
       left: 10px;
       color: #ffff00;
       font-size: 18px;
@@ -195,9 +195,10 @@
       size: 120,
       vx: 0,
       vy: 0,
-      thrust: 0.4,
+      thrust: 0.2,
       drag: 0.95,
       trail: [],
+
       lastShot: 0,
       invincible: false,
       rotation: 0,
@@ -873,7 +874,7 @@
   function updateKeyboardControls() {
     // Xử lý boost khi nhấn Shift
     isBoosting = keyIsDown(SHIFT) && energy > 0;
-    boostMultiplier = isBoosting ? 5 : 1;
+    boostMultiplier = isBoosting ? 3 : 1;
     
     if (isBoosting) {
         energy -= 0.5; // Tiêu hao năng lượng khi boost
@@ -899,7 +900,7 @@
     
     // Xử lý boost khi nhấn Shift
     isBoosting = keyIsDown(SHIFT) && energy > 0;
-    boostMultiplier = isBoosting ? 5 : 1;
+    boostMultiplier = isBoosting ? 3 : 1;
     
     if (isBoosting) {
         energy -= 0.5; // Tiêu hao năng lượng khi boost

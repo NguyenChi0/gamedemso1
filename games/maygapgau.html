@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Game Gắp Bóng Vật Lý</title>
+  <title>Game Gắp Bóng Vật Lý - Đến 50</title>
   <style>
     body {
       margin: 0;
@@ -74,6 +74,7 @@
       padding: 10px 20px;
       border-radius: 15px;
       backdrop-filter: blur(10px);
+      max-width: 600px;
     }
     
     .guide {
@@ -94,6 +95,33 @@
       color: #2ecc71;
       margin-top: 5px;
     }
+    
+    .level-selector {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .level-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 15px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+    
+    .level-btn.active {
+      background: linear-gradient(45deg, #9b59b6, #8e44ad);
+      box-shadow: 0 4px 10px rgba(155, 89, 182, 0.4);
+    }
+    
+    .level-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
   </style>
 </head>
 <body>
@@ -102,9 +130,14 @@
       <div class="guide">← → để di chuyển | Space hoặc ↓ để gắp</div>
       <div class="message" id="message"></div>
       <div class="score">Đã gắp theo thứ tự: <span id="scoreText">Chưa có</span></div>
+      <div class="level-selector">
+        <button class="level-btn active" onclick="changeLevel(10)">Mức dễ (1-10)</button>
+        <button class="level-btn" onclick="changeLevel(20)">Mức trung (1-20)</button>
+        <button class="level-btn" onclick="changeLevel(50)">Mức khó (1-50)</button>
+      </div>
     </div>
     
-    <canvas id="gameCanvas" width="600" height="500"></canvas>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
     
     <div class="controls">
       <button class="btn shuffle" onclick="shuffleBalls()">🌪️ Xáo Trộn</button>
@@ -117,15 +150,16 @@
     const ctx = canvas.getContext("2d");
     const messageBox = document.getElementById("message");
     const scoreText = document.getElementById("scoreText");
+    const levelButtons = document.querySelectorAll('.level-btn');
 
     // Thông số vật lý
     const GRAVITY = 0.5;
-    const BOUNCE = 0.5;
-    const FRICTION = 0.8;
+    const BOUNCE = 0.3;
+    const FRICTION = 0.1;
     const AIR_RESISTANCE = 0.998;
     
     // Thông số game
-    let clawX = 300;
+    let clawX = canvas.width / 2;
     let clawWidth = 50;
     let clawHeight = 25;
     let clawMove = 13;
@@ -134,23 +168,26 @@
     let isReturning = false;
     let nextTarget = 1;
     let caughtNumbers = [];
+    let maxBalls = 10; // Mặc định là 10 bóng
     
-    // Tạo bóng số 1 -> 10
+    // Tạo bóng
     let balls = [];
     
     function initBalls() {
       balls = [];
-      for (let i = 1; i <= 10; i++) {
+      const ballSize = maxBalls <= 10 ? 45 : maxBalls <= 20 ? 35 : 25;
+      
+      for (let i = 1; i <= maxBalls; i++) {
         balls.push({
-          x: Math.random() * 500 + 50,
-          y: Math.random() * 150 + 450,
+          x: Math.random() * (canvas.width - 100) + 50,
+          y: Math.random() * 150 + (canvas.height - 200),
           vx: (Math.random() - 0.5) * 3,
           vy: (Math.random() - 0.5) * 2,
-          size: 45,
+          size: ballSize,
           num: i,
           caught: false,
           onGround: false,
-          mass: 1 + Math.random() * 0.5
+          mass: 4 + Math.random() * 0.5
         });
       }
     }
@@ -195,25 +232,26 @@
       ctx.stroke();
     }
     
+    function getColorForNumber(num) {
+      // Tạo màu dựa trên số
+      const hue = (num * 137.508) % 360; // Sử dụng góc vàng để phân bố đều màu sắc
+      return `hsl(${hue}, 70%, 60%)`;
+    }
+    
     function drawBalls() {
       balls.forEach(ball => {
         if (!ball.caught) {
           // Bóng với gradient
+          const mainColor = getColorForNumber(ball.num);
+          const darkColor = mainColor.replace('60%)', '50%)');
+          
           const gradient = ctx.createRadialGradient(
-            ball.x - 10, ball.y - 10, 0,
+            ball.x - ball.size/6, ball.y - ball.size/6, 0,
             ball.x, ball.y, ball.size / 2
           );
           
-          // Màu sắc theo số
-          const colors = [
-            ['#e74c3c', '#c0392b'], ['#f39c12', '#d68910'], ['#f1c40f', '#f4d03f'],
-            ['#2ecc71', '#27ae60'], ['#1abc9c', '#16a085'], ['#3498db', '#2980b9'],
-            ['#9b59b6', '#8e44ad'], ['#e91e63', '#ad1457'], ['#ff5722', '#d84315'],
-            ['#607d8b', '#455a64']
-          ];
-          
-          gradient.addColorStop(0, colors[ball.num - 1][1]);
-          gradient.addColorStop(1, colors[ball.num - 1][0]);
+          gradient.addColorStop(0, darkColor);
+          gradient.addColorStop(1, mainColor);
           
           ctx.beginPath();
           ctx.arc(ball.x, ball.y, ball.size / 2, 0, Math.PI * 2);
@@ -229,7 +267,8 @@
           ctx.fillStyle = "white";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.font = "bold 20px Arial";
+          const fontSize = ball.size / 2.5;
+          ctx.font = `bold ${fontSize}px Arial`;
           ctx.strokeStyle = "rgba(0,0,0,0.5)";
           ctx.lineWidth = 3;
           ctx.strokeText(ball.num, ball.x, ball.y);
@@ -388,10 +427,10 @@
               
               messageBox.innerText = `Tuyệt vời! Đã gắp số ${caughtBall.num} 🎉`;
               
-              if (nextTarget > 10) {
-                messageBox.innerText = "Chúc mừng! Bạn đã hoàn thành game! 🏆";
+              if (nextTarget > maxBalls) {
+                messageBox.innerText = `Chúc mừng! Bạn đã hoàn thành ${maxBalls} số! 🏆`;
                 setTimeout(() => {
-                  if (confirm("Chúc mừng bạn đã thắng! Chơi lại không?")) {
+                  if (confirm(`Chúc mừng bạn đã thắng với ${maxBalls} số! Chơi lại không?`)) {
                     resetGame();
                   }
                 }, 1000);
@@ -417,7 +456,7 @@
       if (caughtNumbers.length === 0) {
         scoreText.innerText = "Chưa có";
       } else {
-        scoreText.innerText = caughtNumbers.join(", ") + ` (Tiếp theo: ${nextTarget > 10 ? "Hoàn thành!" : nextTarget})`;
+        scoreText.innerText = caughtNumbers.join(", ") + ` (Tiếp theo: ${nextTarget > maxBalls ? "Hoàn thành!" : nextTarget})`;
       }
     }
     
@@ -442,12 +481,34 @@
       isDropping = false;
       isReturning = false;
       ropeLength = 60;
-      clawX = 300;
+      clawX = canvas.width / 2;
       
       initBalls();
       updateScore();
-      messageBox.innerText = "Game mới bắt đầu! Hãy gắp từ số 1 đến 10 theo thứ tự! 🎮";
+      messageBox.innerText = `Game mới bắt đầu! Hãy gắp từ số 1 đến ${maxBalls} theo thứ tự! 🎮`;
       setTimeout(() => messageBox.innerText = "", 3000);
+    }
+    
+    function changeLevel(level) {
+      maxBalls = level;
+      
+      // Cập nhật nút active
+      levelButtons.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      // Điều chỉnh kích thước canvas cho nhiều bóng hơn
+      if (maxBalls > 20) {
+        canvas.width = 900;
+        canvas.height = 700;
+      } else if (maxBalls > 10) {
+        canvas.width = 800;
+        canvas.height = 600;
+      } else {
+        canvas.width = 600;
+        canvas.height = 500;
+      }
+      
+      resetGame();
     }
     
     function gameLoop() {

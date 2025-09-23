@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Bảo Vệ Thành - Số Tiếp Theo</title>
+  <style>
+    body { margin: 0; background: #222; color: white; text-align: center; font-family: sans-serif; }
+    canvas { background: #333; display: block; margin: 10px auto; }
+    #questionBox {
+      background: #444;
+      padding: 10px;
+      margin: 10px auto;
+      width: 500px;
+      border-radius: 8px;
+    }
+    .answerBtn {
+      background: #666;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .answerBtn:hover {
+      background: #888;
+    }
+  </style>
+</head>
+<body>
+  <h2>Game Bảo Vệ Thành - Số Tiếp Theo</h2>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+  <div id="questionBox">
+    <p id="question">Câu hỏi sẽ hiện ở đây</p>
+    <div id="answers"></div>
+  </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let castleHP = 100;
+let enemies = [];
+let bullets = [];
+let currentQuestion = {};
+let score = 0;
+
+// Nhân vật trên thành
+const hero = { x: 60, y: 200 };
+
+// Enemy class
+class Enemy {
+  constructor() {
+    this.x = canvas.width;
+    this.y = 250;
+    this.hp = 30;
+    this.speed = 1;
+  }
+  update() {
+    this.x -= this.speed;
+    if (this.x < 100) {
+      castleHP -= 10;
+      this.hp = 0;
+    }
+  }
+  draw() {
+    ctx.fillStyle = "red";
+    ctx.fillRect(this.x, this.y, 30, 30);
+    ctx.fillStyle = "green";
+    ctx.fillRect(this.x, this.y - 5, (this.hp/30)*30, 3);
+  }
+}
+
+// Bullet class
+class Bullet {
+  constructor(target) {
+    this.x = hero.x + 20;
+    this.y = hero.y;
+    this.target = target;
+    this.speed = 5;
+    this.hit = false;
+  }
+  update() {
+    if (!this.target || this.target.hp<=0) return;
+    let dx = this.target.x - this.x;
+    let dy = this.target.y - this.y;
+    let dist = Math.hypot(dx,dy);
+    if(dist < 10){
+      this.target.hp -= 20;
+      this.hit = true;
+    } else {
+      this.x += dx/dist * this.speed;
+      this.y += dy/dist * this.speed;
+    }
+  }
+  draw() {
+    ctx.fillStyle = "yellow";
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 5, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// Sinh câu hỏi "số tiếp theo"
+function newQuestion() {
+  let n = Math.floor(Math.random() * 10) + 1; // 1-10
+  let correct = n + 1;
+  currentQuestion = { q: `Số tiếp theo của ${n} là gì?`, answer: correct };
+
+  // tạo 2 đáp án sai
+  let answers = [correct];
+  while(answers.length < 3){
+    let wrong = Math.floor(Math.random() * 12) + 1;
+    if(!answers.includes(wrong)) answers.push(wrong);
+  }
+
+  // trộn ngẫu nhiên
+  answers.sort(()=> Math.random()-0.5);
+
+  // render ra UI
+  document.getElementById("question").innerText = currentQuestion.q;
+  const answersDiv = document.getElementById("answers");
+  answersDiv.innerHTML = "";
+  answers.forEach(ans=>{
+    let btn = document.createElement("button");
+    btn.innerText = ans;
+    btn.className = "answerBtn";
+    btn.onclick = ()=> checkAnswer(ans);
+    answersDiv.appendChild(btn);
+  });
+}
+
+// Kiểm tra đáp án
+function checkAnswer(ans){
+  if(ans === currentQuestion.answer){
+    score++;
+    if(enemies.length>0){
+      bullets.push(new Bullet(enemies[0]));
+    }
+  }
+  newQuestion();
+}
+
+// Spawn quái
+setInterval(()=> enemies.push(new Enemy()), 3000);
+
+function gameLoop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Vẽ thành
+  ctx.fillStyle = "gray";
+  ctx.fillRect(30,180,50,100);
+
+  // Vẽ nhân vật
+  ctx.fillStyle = "blue";
+  ctx.fillRect(hero.x, hero.y-40, 30,40);
+
+  // Enemy update
+  for(let e of enemies) e.update();
+  enemies = enemies.filter(e=> e.hp>0);
+  for(let e of enemies) e.draw();
+
+  // Bullet update
+  for(let b of bullets) b.update();
+  bullets = bullets.filter(b=> !b.hit);
+  for(let b of bullets) b.draw();
+
+  // Hiển thị thông tin
+  ctx.fillStyle="white";
+  ctx.fillText(`HP Thành: ${castleHP}`, 20,20);
+  ctx.fillText(`Điểm: ${score}`, 20,40);
+
+  if(castleHP<=0){
+    ctx.fillStyle="white";
+    ctx.font="40px Arial";
+    ctx.fillText("GAME OVER!", canvas.width/2-100, canvas.height/2);
+    return;
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+newQuestion();
+gameLoop();
+</script>
+</body>
+</html>

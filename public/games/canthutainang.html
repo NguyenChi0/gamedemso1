@@ -78,6 +78,16 @@
       text-shadow: 1px 1px 2px #000;
       font-weight: bold;
     }
+    #level {
+      position: absolute;
+      top: 70px;
+      width: 100%;
+      text-align: center;
+      font-size: 18px;
+      color: #FF6B6B;
+      text-shadow: 1px 1px 2px #000;
+      font-weight: bold;
+    }
     #controller {
       display: flex;
       justify-content: center;
@@ -108,7 +118,7 @@
     #drop-btn {
       background-color: rgba(231, 76, 60, 0.7);
     }
-    #restart-btn {
+    #restart-btn, #next-level-btn {
       margin-top: 20px;
       padding: 12px 25px;
       background: linear-gradient(to bottom, #27ae60, #219653);
@@ -122,7 +132,11 @@
       transition: all 0.2s;
       display: none;
     }
-    #restart-btn:active {
+    #next-level-btn {
+      background: linear-gradient(to bottom, #3498db, #2980b9);
+      margin-left: 10px;
+    }
+    #restart-btn:active, #next-level-btn:active {
       transform: scale(0.95);
     }
     #instructions {
@@ -132,6 +146,11 @@
       margin-top: 20px;
       max-width: 500px;
       text-align: center;
+    }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
     }
     @media (max-width: 500px) {
       canvas {
@@ -145,6 +164,13 @@
         width: 60px;
         height: 60px;
       }
+      .button-container {
+        flex-direction: column;
+        align-items: center;
+      }
+      #restart-btn, #next-level-btn {
+        margin-left: 0;
+      }
     }
   </style>
 </head>
@@ -154,6 +180,7 @@
     <div id="guide">← → để di chuyển | Space hoặc ↓ để thả cần</div>
     <div id="message"></div>
     <div id="score">Điểm: 0</div>
+    <div id="level">Cấp độ: 1 (Số 1-10)</div>
     <div id="target">Cần câu số: 1</div>
     <canvas id="gameCanvas" width="800" height="400"></canvas>
   </div>
@@ -164,10 +191,13 @@
     <div class="control-btn" id="right-btn">→</div>
   </div>
 
-  <button id="restart-btn">Chơi Lại</button>
+  <div class="button-container">
+    <button id="restart-btn">Chơi Lại</button>
+    <button id="next-level-btn">Cấp Độ Tiếp Theo</button>
+  </div>
 
   <div id="instructions">
-    <p><strong>Luật chơi:</strong> Bạn phải câu cá theo thứ tự từ 1 đến 10.<br>
+    <p><strong>Luật chơi:</strong> Bạn phải câu cá theo thứ tự từ 1 đến 40 qua 4 cấp độ.<br>
     Nếu câu sai số, bạn sẽ thua!</p>
   </div>
 
@@ -177,10 +207,12 @@
     const messageBox = document.getElementById("message");
     const scoreElement = document.getElementById("score");
     const targetElement = document.getElementById("target");
+    const levelElement = document.getElementById("level");
     const leftBtn = document.getElementById("left-btn");
     const rightBtn = document.getElementById("right-btn");
     const dropBtn = document.getElementById("drop-btn");
     const restartBtn = document.getElementById("restart-btn");
+    const nextLevelBtn = document.getElementById("next-level-btn");
 
     // Các biến trò chơi
     let clawX = 250;
@@ -193,6 +225,9 @@
     let score = 0;
     let currentTarget = 1;
     let gameOver = false;
+    let currentLevel = 1;
+    let totalLevels = 4;
+    let maxTarget = 10; // Mỗi cấp độ có 10 số
 
     // Xác định ranh giới nước
     const waterLevel = 100;
@@ -260,23 +295,37 @@
       });
     }
 
-    // Tạo cá với các số từ 1 đến 10
-    let fishes = [];
+    // Màu sắc cho cá từ 1 đến 40
     const fishColors = ["#ff5252", "#ffeb3b", "#2196f3", "#9c27b0", "#4caf50", 
-                       "#ff9800", "#00bcd4", "#e91e63", "#8bc34a", "#673ab7"];
+                       "#ff9800", "#00bcd4", "#e91e63", "#8bc34a", "#673ab7",
+                       "#f44336", "#cddc39", "#03a9f4", "#673ab7", "#4caf50",
+                       "#ff5722", "#009688", "#e91e63", "#ffc107", "#3f51b5",
+                       "#795548", "#9e9e9e", "#607d8b", "#ff4081", "#7c4dff",
+                       "#00bcd4", "#ffeb3b", "#76ff03", "#ff9100", "#d500f9",
+                       "#ff1744", "#3d5afe", "#ffea00", "#1de9b6", "#ff3d00",
+                       "#651fff", "#f50057", "#2979ff", "#00e676", "#ffab00"];
 
-    for (let i = 1; i <= 10; i++) {
-      fishes.push({
-        x: Math.random() * (canvas.width - 80) + 40,
-        y: waterLevel + 20 + Math.random() * (canvas.height - waterLevel - 70),
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 1.5,
-        size: 30,
-        num: i,
-        color: fishColors[i-1],
-        caught: false,
-        direction: Math.random() > 0.5 ? 1 : -1
-      });
+    let fishes = [];
+
+    // Khởi tạo cá cho cấp độ hiện tại
+    function initFishes() {
+      fishes = [];
+      const startNumber = (currentLevel - 1) * 10 + 1;
+      const endNumber = currentLevel * 10;
+      
+      for (let i = startNumber; i <= endNumber; i++) {
+        fishes.push({
+          x: Math.random() * (canvas.width - 80) + 40,
+          y: waterLevel + 20 + Math.random() * (canvas.height - waterLevel - 70),
+          vx: (Math.random() - 0.5) * (2 + (currentLevel - 1) * 0.5), // Tăng tốc độ theo cấp độ
+          vy: (Math.random() - 0.5) * (1.5 + (currentLevel - 1) * 0.3),
+          size: 30 - (currentLevel - 1) * 2, // Giảm kích thước theo cấp độ
+          num: i,
+          color: fishColors[i-1],
+          caught: false,
+          direction: Math.random() > 0.5 ? 1 : -1
+        });
+      }
     }
 
     let caughtFish = null;
@@ -605,12 +654,22 @@
                 score += 10;
                 scoreElement.innerText = "Điểm: " + score;
                 currentTarget++;
-                targetElement.innerText = currentTarget <= 10 ? "Cần câu số: " + currentTarget : "";
                 
-                if (currentTarget > 10) {
-                  gameOver = true;
-                  messageBox.innerText = "Chúc mừng! Bạn đã chiến thắng! 🎉";
-                  restartBtn.style.display = "block";
+                // Kiểm tra nếu đã hoàn thành cấp độ hiện tại
+                if (currentTarget > currentLevel * 10) {
+                  if (currentLevel < totalLevels) {
+                    // Hoàn thành cấp độ
+                    gameOver = true;
+                    messageBox.innerText = "Chúc mừng! Bạn đã hoàn thành cấp độ " + currentLevel + "!";
+                    nextLevelBtn.style.display = "block";
+                  } else {
+                    // Hoàn thành toàn bộ trò chơi
+                    gameOver = true;
+                    messageBox.innerText = "Chúc mừng! Bạn đã chiến thắng toàn bộ trò chơi! 🎉";
+                    restartBtn.style.display = "block";
+                  }
+                } else {
+                  targetElement.innerText = "Cần câu số: " + currentTarget;
                 }
               } else {
                 gameOver = true;
@@ -752,43 +811,65 @@
     // Nút chơi lại
     restartBtn.addEventListener("click", restartGame);
     
+    // Nút chuyển cấp độ
+    nextLevelBtn.addEventListener("click", nextLevel);
+    
     function restartGame() {
       clawX = 250;
       ropeLength = waterLevel + 20;
       isDropping = false;
       isReturning = false;
       score = 0;
+      currentLevel = 1;
       currentTarget = 1;
       gameOver = false;
       caughtFish = null;
       
       scoreElement.innerText = "Điểm: 0";
+      levelElement.innerText = "Cấp độ: 1 (Số 1-10)";
       targetElement.innerText = "Cần câu số: 1";
       messageBox.innerText = "";
       restartBtn.style.display = "none";
+      nextLevelBtn.style.display = "none";
       
       // Tạo lại cá
-      fishes = [];
-      for (let i = 1; i <= 10; i++) {
-        fishes.push({
-          x: Math.random() * (canvas.width - 80) + 40,
-          y: waterLevel + 20 + Math.random() * (canvas.height - waterLevel - 70),
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 1.5,
-          size: 30,
-          num: i,
-          color: fishColors[i-1],
-          caught: false,
-          direction: Math.random() > 0.5 ? 1 : -1
-        });
-      }
+      initFishes();
       
       // Tạo lại bong bóng
       initBubbles();
     }
+    
+    function nextLevel() {
+      currentLevel++;
+      currentTarget = (currentLevel - 1) * 10 + 1;
+      gameOver = false;
+      caughtFish = null;
+      isDropping = false;
+      isReturning = false;
+      ropeLength = waterLevel + 20;
+      
+      // Cập nhật thông tin cấp độ
+      let levelRange = "";
+      if (currentLevel === 2) levelRange = "Số 11-20";
+      else if (currentLevel === 3) levelRange = "Số 21-30";
+      else if (currentLevel === 4) levelRange = "Số 31-40";
+      
+      levelElement.innerText = "Cấp độ: " + currentLevel + " (" + levelRange + ")";
+      targetElement.innerText = "Cần câu số: " + currentTarget;
+      messageBox.innerText = "";
+      nextLevelBtn.style.display = "none";
+      
+      // Tạo cá mới cho cấp độ mới
+      initFishes();
+      
+      // Tăng tốc độ di chuyển của cần câu ở các cấp độ cao hơn
+      clawMove = 5 + (currentLevel - 1);
+    }
 
     // Khởi động game
     initBubbles();
+    initFishes();
+    levelElement.innerText = "Cấp độ: 1 (Số 1-10)";
     targetElement.innerText = "Cần câu số: 1";
     gameLoop();
   </script>

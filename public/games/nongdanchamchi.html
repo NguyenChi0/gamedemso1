@@ -3,13 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Game: Hái táo 1→10 (có giỏ)</title>
+<title>Game: Hái táo 1→50 (5 ván)</title>
 <style>
   :root {
     --bg: #dff1ff;
     --tree-brown: #6b3f1f;
     --leaf: #2f8b3a;
     --apple: #d32f2f;
+    --level-1: #4CAF50;
+    --level-2: #2196F3;
+    --level-3: #9C27B0;
+    --level-4: #FF9800;
+    --level-5: #F44336;
   }
   
   html, body {
@@ -68,6 +73,14 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   }
   
+  .level-indicator {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
   button {
     background: #fff;
     border: 0;
@@ -114,7 +127,7 @@
 
   /* apple */
   .apple {
-    --size: 64px;
+    --size: 58px;
     width: var(--size);
     height: var(--size);
     position: absolute;
@@ -138,7 +151,7 @@
     position: absolute;
     color: white;
     font-weight: 700;
-    font-size: 20px;
+    font-size: 18px;
     text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
   }
   
@@ -198,7 +211,6 @@
   .menu h2 {
     font-size: 32px;
     margin-bottom: 20px;
-    color: #2f8b3a;
   }
   
   .menu p {
@@ -232,6 +244,34 @@
     font-weight: bold;
   }
   
+  .level-complete {
+    font-size: 24px;
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+  
+  .level-progress {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    gap: 8px;
+  }
+  
+  .level-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ccc;
+  }
+  
+  .level-dot.active {
+    background: #4CAF50;
+  }
+  
+  .level-dot.completed {
+    background: #2196F3;
+  }
+  
   .confetti {
     position: absolute;
     width: 15px;
@@ -256,8 +296,8 @@
     <!-- Menu bắt đầu -->
     <div class="menu" id="startMenu">
       <div class="menu-content">
-        <h2>Game Hái Táo</h2>
-        <p>Hãy hái những quả táo theo thứ tự từ 1 đến 10!<br>Nhấn nút bên dưới để bắt đầu.</p>
+        <h2>Game Hái Táo 1-50</h2>
+        <p>Hãy hái những quả táo theo thứ tự từ 1 đến 50!<br>Trò chơi được chia thành 5 ván, mỗi ván 10 quả táo.<br>Nhấn nút bên dưới để bắt đầu.</p>
         <button class="menu-btn" id="startBtn">Bắt đầu</button>
       </div>
     </div>
@@ -266,14 +306,32 @@
     <div class="menu hidden" id="endMenu">
       <div class="menu-content">
         <h2>Chúc mừng!</h2>
-        <p class="win-message">Bạn đã hái đủ 10 quả táo!</p>
+        <p class="win-message">Bạn đã hoàn thành tất cả 5 ván!</p>
         <p>Bạn có muốn chơi lại không?</p>
         <button class="menu-btn" id="playAgainBtn">Chơi lại</button>
       </div>
     </div>
 
+    <!-- Menu hoàn thành ván -->
+    <div class="menu hidden" id="levelCompleteMenu">
+      <div class="menu-content">
+        <h2>Ván <span id="currentLevelDisplay">1</span> hoàn thành!</h2>
+        <p class="level-complete">Bạn đã hái đủ 10 quả táo!</p>
+        <div class="level-progress">
+          <div class="level-dot completed"></div>
+          <div class="level-dot"></div>
+          <div class="level-dot"></div>
+          <div class="level-dot"></div>
+          <div class="level-dot"></div>
+        </div>
+        <p>Chuẩn bị cho ván tiếp theo!</p>
+        <button class="menu-btn" id="nextLevelBtn">Ván tiếp theo</button>
+      </div>
+    </div>
+
     <div class="hud">
-      <div class="hint">Hái táo theo thứ tự: <span id="target">1</span> → 10</div>
+      <div class="level-indicator">Ván: <span id="currentLevel">1</span>/5</div>
+      <div class="hint">Hái táo: <span id="target">1</span> → <span id="maxTarget">10</span></div>
       <button id="restartBtn">Làm lại</button>
     </div>
     
@@ -293,16 +351,24 @@
 // Lấy các phần tử DOM
 const applesEl = document.getElementById("apples");
 const targetEl = document.getElementById("target");
+const maxTargetEl = document.getElementById("maxTarget");
 const basketEl = document.getElementById("basket");
 const restartBtn = document.getElementById("restartBtn");
 const startMenu = document.getElementById("startMenu");
 const endMenu = document.getElementById("endMenu");
+const levelCompleteMenu = document.getElementById("levelCompleteMenu");
 const startBtn = document.getElementById("startBtn");
 const playAgainBtn = document.getElementById("playAgainBtn");
+const nextLevelBtn = document.getElementById("nextLevelBtn");
+const currentLevelEl = document.getElementById("currentLevel");
+const currentLevelDisplayEl = document.getElementById("currentLevelDisplay");
 
 // Biến toàn cục
-let target = 1, N = 10;
-let appleImages = []; // Lưu trữ các đối tượng ảnh táo
+let target = 1;
+let currentLevel = 1;
+const TOTAL_LEVELS = 5;
+const APPLES_PER_LEVEL = 10;
+let levelColors = ['var(--level-1)', 'var(--level-2)', 'var(--level-3)', 'var(--level-4)', 'var(--level-5)'];
 
 // Hàm tạo số ngẫu nhiên
 function rand(min, max) {
@@ -325,6 +391,19 @@ function createConfetti() {
       confetti.remove();
     }, 5000);
   }
+}
+
+// Cập nhật hiển thị tiến trình các ván
+function updateLevelProgress() {
+  const dots = document.querySelectorAll('.level-dot');
+  dots.forEach((dot, index) => {
+    dot.classList.remove('active', 'completed');
+    if (index + 1 < currentLevel) {
+      dot.classList.add('completed');
+    } else if (index + 1 === currentLevel) {
+      dot.classList.add('active');
+    }
+  });
 }
 
 // Tạo quả táo
@@ -376,33 +455,74 @@ function onClickApple(el, num) {
   el.style.pointerEvents = "none";
 
   target++;
-  targetEl.textContent = target <= N ? target : "✓";
+  targetEl.textContent = target <= currentLevel * APPLES_PER_LEVEL ? target : "✓";
 
-  if (target > N) {
+  // Kiểm tra nếu hoàn thành ván hiện tại
+  if (target > currentLevel * APPLES_PER_LEVEL) {
     setTimeout(() => {
-      endMenu.classList.remove("hidden");
-      createConfetti();
+      if (currentLevel < TOTAL_LEVELS) {
+        // Hiển thị menu hoàn thành ván
+        currentLevelDisplayEl.textContent = currentLevel;
+        updateLevelProgress();
+        levelCompleteMenu.classList.remove("hidden");
+      } else {
+        // Hoàn thành tất cả các ván
+        endMenu.classList.remove("hidden");
+        createConfetti();
+      }
     }, 1000);
   }
+}
+
+// Bắt đầu ván mới
+function startLevel() {
+  levelCompleteMenu.classList.add("hidden");
+  applesEl.innerHTML = "";
+  
+  const startNum = (currentLevel - 1) * APPLES_PER_LEVEL + 1;
+  const endNum = currentLevel * APPLES_PER_LEVEL;
+  
+  target = startNum;
+  targetEl.textContent = target;
+  maxTargetEl.textContent = endNum;
+  
+  // Cập nhật màu sắc cho ván hiện tại
+  document.documentElement.style.setProperty('--apple', levelColors[currentLevel - 1]);
+  
+  for (let i = startNum; i <= endNum; i++) {
+    applesEl.appendChild(createApple(i));
+  }
+}
+
+// Chuyển sang ván tiếp theo
+function nextLevel() {
+  currentLevel++;
+  currentLevelEl.textContent = currentLevel;
+  startLevel();
 }
 
 // Bắt đầu game
 function startGame() {
   startMenu.classList.add("hidden");
   endMenu.classList.add("hidden");
-  applesEl.innerHTML = "";
-  target = 1;
-  targetEl.textContent = "1";
+  levelCompleteMenu.classList.add("hidden");
   
-  for (let i = 1; i <= N; i++) {
-    applesEl.appendChild(createApple(i));
-  }
+  currentLevel = 1;
+  currentLevelEl.textContent = "1";
+  
+  startLevel();
+}
+
+// Chơi lại từ đầu
+function restartGame() {
+  startGame();
 }
 
 // Thiết lập sự kiện
-restartBtn.onclick = startGame;
+restartBtn.onclick = restartGame;
 startBtn.onclick = startGame;
-playAgainBtn.onclick = startGame;
+playAgainBtn.onclick = restartGame;
+nextLevelBtn.onclick = nextLevel;
 
 // Tải trước ảnh để tránh nhấp nháy khi hiển thị
 function preloadImages() {

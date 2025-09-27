@@ -5,36 +5,90 @@
   <title>Game Bảo Vệ Thành - Số Tiếp Theo</title>
   <style>
     body { margin: 0; background: #222; color: white; text-align: center; font-family: sans-serif; }
-    canvas { background: #333; display: block; margin: 10px auto; }
+    canvas { background: #333; display: block; margin: 10px auto; border: 2px solid #666; }
     #questionBox {
       background: #444;
-      padding: 10px;
+      padding: 15px;
       margin: 10px auto;
       width: 500px;
       border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
     .answerBtn {
       background: #666;
       color: white;
       border: none;
-      padding: 10px 20px;
+      padding: 12px 25px;
       margin: 5px;
       border-radius: 5px;
       cursor: pointer;
       font-size: 16px;
+      transition: all 0.3s;
     }
     .answerBtn:hover {
       background: #888;
+      transform: translateY(-2px);
+    }
+    .answerBtn:disabled {
+      background: #333;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    #gameInfo {
+      margin: 10px 0;
+      font-size: 18px;
+    }
+    #skillButtons {
+      margin: 15px auto;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .skillBtn {
+      background: linear-gradient(45deg, #ff9800, #ff5722);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.3s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .skillBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    }
+    .skillBtn:disabled {
+      background: #555;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    .skillProgress {
+      margin-top: 5px;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <h2>Game Bảo Vệ Thành - Số Tiếp Theo</h2>
-  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <h2>🏰 Game Bảo Vệ Thành - Số Tiếp Theo 🏰</h2>
+  <div id="gameInfo">
+    <span id="hpDisplay">❤️ HP Thành: 100</span> | 
+    <span id="scoreDisplay">⭐ Điểm: 0</span>
+  </div>
+  
+  <div id="skillButtons">
+    <button id="rainSkill" class="skillBtn" disabled>Mưa Đạn (6 câu đúng)</button>
+    <button id="pierceSkill" class="skillBtn" disabled>Đạn Thần (10 câu đúng)</button>
+  </div>
+  
+  <canvas id="gameCanvas" width="1000" height="500"></canvas>
 
   <div id="questionBox">
     <p id="question">Câu hỏi sẽ hiện ở đây</p>
     <div id="answers"></div>
+    <div id="feedback" style="margin-top: 10px; font-weight: bold;"></div>
   </div>
 
 <script>
@@ -46,144 +100,476 @@ let enemies = [];
 let bullets = [];
 let currentQuestion = {};
 let score = 0;
+let gameRunning = true;
+let questionLocked = false;
+
+// Biến kỹ năng
+let correctStreak = 0; // Số câu trả lời đúng liên tiếp
+let doubleShotActive = false; // Kỹ năng bắn đôi
+
+// Load images
+const images = {};
+const imageFiles = [
+  'backgroundthanhtri.png',
+  'castle.png',
+  'hero.png',
+  'arrow.png',
+  'monster1.png',
+  'monster2.png',
+  'monster3.png',
+  'monster4.png',
+  'monster5.png',
+  'monster6.png',
+  'monster7.png',
+  'monster8.png'
+];
+
+let imagesLoaded = 0;
+imageFiles.forEach(filename => {
+  const img = new Image();
+  img.onload = () => {
+    imagesLoaded++;
+    if (imagesLoaded === imageFiles.length) {
+      console.log('Tất cả hình ảnh đã được tải!');
+    }
+  };
+  img.onerror = () => {
+    console.log(`Không thể tải hình ảnh: ${filename}`);
+    imagesLoaded++;
+  };
+  img.src = filename;
+  images[filename] = img;
+});
 
 // Nhân vật trên thành
-const hero = { x: 60, y: 200 };
+const hero = { x: 120, y: 220 };
 
 // Enemy class
 class Enemy {
   constructor() {
     this.x = canvas.width;
-    this.y = 250;
-    this.hp = 30;
-    this.speed = 1;
+    this.y = 330;
+    this.hp = 80;
+    this.maxHP = 80;
+    this.speed = 0.4;
+    this.width = 80;
+    this.height = 100;
+    // Chọn ngẫu nhiên một trong 8 con quái vật
+    this.monsterType = Math.floor(Math.random() * 8) + 1;
+    this.image = images[`monster${this.monsterType}.png`];
   }
+  
   update() {
     this.x -= this.speed;
-    if (this.x < 100) {
-      castleHP -= 10;
+    if (this.x < 160) { // Va chạm với thành
+      castleHP -= 15;
       this.hp = 0;
     }
   }
+  
   draw() {
-    ctx.fillStyle = "red";
-    ctx.fillRect(this.x, this.y, 30, 30);
-    ctx.fillStyle = "green";
-    ctx.fillRect(this.x, this.y - 5, (this.hp/30)*30, 3);
+    // Vẽ quái vật
+    if (this.image && this.image.complete) {
+      ctx.drawImage(this.image, this.x, this.y - this.height, this.width, this.height);
+    } else {
+      // Fallback nếu không load được hình
+      ctx.fillStyle = `hsl(${this.monsterType * 45}, 70%, 50%)`;
+      ctx.fillRect(this.x, this.y - this.height, this.width, this.height);
+    }
+    
+    // Thanh máu
+    const hpBarWidth = this.width;
+    const hpBarHeight = 4;
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(this.x, this.y - this.height - 8, hpBarWidth, hpBarHeight);
+    
+    ctx.fillStyle = this.hp > this.maxHP * 0.3 ? "green" : "red";
+    const hpWidth = (this.hp / this.maxHP) * hpBarWidth;
+    ctx.fillRect(this.x, this.y - this.height - 8, hpWidth, hpBarHeight);
   }
 }
 
 // Bullet class
 class Bullet {
-  constructor(target) {
-    this.x = hero.x + 20;
-    this.y = hero.y;
+  constructor(target, specialType = null) {
+    this.x = hero.x + 30;
+    this.y = hero.y + 10;
     this.target = target;
-    this.speed = 5;
+    this.speed = 6;
     this.hit = false;
-  }
-  update() {
-    if (!this.target || this.target.hp<=0) return;
-    let dx = this.target.x - this.x;
-    let dy = this.target.y - this.y;
-    let dist = Math.hypot(dx,dy);
-    if(dist < 10){
-      this.target.hp -= 20;
-      this.hit = true;
-    } else {
-      this.x += dx/dist * this.speed;
-      this.y += dy/dist * this.speed;
+    this.width = 40;
+    this.height = 17;
+    this.createdTime = Date.now();
+    this.lifetime = 3000; // 3 giây
+    this.specialType = specialType; // 'rain' hoặc 'pierce'
+    
+    if (specialType === 'rain') {
+      // Đạn mưa rơi từ trên xuống
+      this.x = Math.random() * canvas.width;
+      this.y = 0;
+      this.speed = 4;
+    } else if (specialType === 'pierce') {
+      // Đạn thần xuyên qua nhiều quái
+      this.pierceCount = 5; // Xuyên qua 5 quái
+      this.hitEnemies = []; // Danh sách quái đã bị trúng
     }
   }
+  
+  update() {
+    // Kiểm tra thời gian sống
+    if (Date.now() - this.createdTime > this.lifetime) {
+      this.hit = true; // Đánh dấu để xóa
+      return;
+    }
+    
+    if (this.specialType === 'rain') {
+      // Đạn mưa rơi thẳng xuống
+      this.y += this.speed;
+      
+      // Kiểm tra va chạm với quái
+      for (let enemy of enemies) {
+        if (enemy.hp > 0 && 
+            this.x > enemy.x && this.x < enemy.x + enemy.width &&
+            this.y > enemy.y - enemy.height && this.y < enemy.y) {
+          enemy.hp -= 25;
+          this.hit = true;
+          break;
+        }
+      }
+      
+      // Nếu ra khỏi màn hình
+      if (this.y > canvas.height) {
+        this.hit = true;
+      }
+      return;
+    }
+    
+    if (this.specialType === 'pierce') {
+      // Đạn thần bay thẳng về phía trước
+      this.x += this.speed;
+      
+      // Kiểm tra va chạm với quái
+      for (let enemy of enemies) {
+        if (enemy.hp > 0 && !this.hitEnemies.includes(enemy) &&
+            this.x > enemy.x && this.x < enemy.x + enemy.width &&
+            this.y > enemy.y - enemy.height && this.y < enemy.y) {
+          enemy.hp -= 25;
+          this.hitEnemies.push(enemy);
+          this.pierceCount--;
+          
+          if (this.pierceCount <= 0) {
+            this.hit = true;
+            break;
+          }
+        }
+      }
+      
+      // Nếu ra khỏi màn hình
+      if (this.x > canvas.width) {
+        this.hit = true;
+      }
+      return;
+    }
+    
+    // Đạn thường
+    if (!this.target || this.target.hp <= 0) {
+      // Nếu không có target, bay thẳng về phía trước
+      this.x += this.speed;
+      if (this.x > canvas.width) {
+        this.hit = true;
+      }
+      return;
+    }
+    
+    let dx = this.target.x - this.x;
+    let dy = this.target.y - 20 - this.y;
+    let dist = Math.hypot(dx, dy);
+    
+    if (dist < 25) {
+      this.target.hp -= 25;
+      this.hit = true;
+    } else {
+      this.x += (dx / dist) * this.speed;
+      this.y += (dy / dist) * this.speed;
+    }
+  }
+  
   draw() {
-    ctx.fillStyle = "yellow";
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, 5, 0, Math.PI*2);
-    ctx.fill();
+    if (this.specialType === 'rain') {
+      // Vẽ đạn mưa
+      ctx.fillStyle = "cyan";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.specialType === 'pierce') {
+      // Vẽ đạn thần
+      ctx.fillStyle = "gold";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 10, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Hiệu ứng ánh sáng
+      ctx.strokeStyle = "yellow";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 15, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (images['arrow.png'] && images['arrow.png'].complete) {
+      // Đạn thường
+      ctx.drawImage(images['arrow.png'], this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+    } else {
+      // Fallback
+      ctx.fillStyle = "yellow";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 
 // Sinh câu hỏi "số tiếp theo"
 function newQuestion() {
-  let n = Math.floor(Math.random() * 10) + 1; // 1-10
+  if (questionLocked) return;
+  
+  let n = Math.floor(Math.random() * 15) + 1; // 1-15
   let correct = n + 1;
   currentQuestion = { q: `Số tiếp theo của ${n} là gì?`, answer: correct };
 
-  // tạo 2 đáp án sai
+  // tạo 3 đáp án sai
   let answers = [correct];
-  while(answers.length < 3){
-    let wrong = Math.floor(Math.random() * 12) + 1;
+  while(answers.length < 4){
+    let wrong = Math.floor(Math.random() * 20) + 1;
     if(!answers.includes(wrong)) answers.push(wrong);
   }
 
   // trộn ngẫu nhiên
-  answers.sort(()=> Math.random()-0.5);
+  answers.sort(() => Math.random() - 0.5);
 
   // render ra UI
   document.getElementById("question").innerText = currentQuestion.q;
+  document.getElementById("feedback").innerText = "";
   const answersDiv = document.getElementById("answers");
   answersDiv.innerHTML = "";
-  answers.forEach(ans=>{
+  
+  answers.forEach(ans => {
     let btn = document.createElement("button");
     btn.innerText = ans;
     btn.className = "answerBtn";
-    btn.onclick = ()=> checkAnswer(ans);
+    btn.onclick = () => checkAnswer(ans);
     answersDiv.appendChild(btn);
   });
 }
 
 // Kiểm tra đáp án
-function checkAnswer(ans){
-  if(ans === currentQuestion.answer){
+function checkAnswer(ans) {
+  if (questionLocked) return;
+  
+  const answersDiv = document.getElementById("answers");
+  const buttons = answersDiv.querySelectorAll('.answerBtn');
+  
+  // Vô hiệu hóa tất cả buttons
+  buttons.forEach(btn => btn.disabled = true);
+  
+  if (ans === currentQuestion.answer) {
     score++;
-    if(enemies.length>0){
-      bullets.push(new Bullet(enemies[0]));
+    correctStreak++;
+    document.getElementById("feedback").style.color = "#4CAF50";
+    document.getElementById("feedback").innerText = "✅ Chính xác!";
+    
+    // Kích hoạt kỹ năng bắn đôi khi đúng 5 câu liên tiếp
+    if (correctStreak >= 5) {
+      doubleShotActive = true;
     }
+    
+    // Kích hoạt nút kỹ năng khi đủ điều kiện
+    updateSkillButtons();
+    
+    // Bắn đạn vào quái gần nhất
+    if (enemies.length > 0) {
+      let nearestEnemy = enemies.reduce((nearest, enemy) => 
+        enemy.x < nearest.x ? enemy : nearest
+      );
+      bullets.push(new Bullet(nearestEnemy));
+      
+      // Bắn đôi nếu kỹ năng đang active
+      if (doubleShotActive) {
+        let secondNearest = enemies.filter(e => e !== nearestEnemy)
+          .reduce((nearest, enemy) => enemy.x < nearest.x ? enemy : nearest, {x: Infinity});
+        if (secondNearest.x !== Infinity) {
+          bullets.push(new Bullet(secondNearest));
+        }
+      }
+    }
+    
+    // Câu hỏi mới ngay lập tức
+    setTimeout(newQuestion, 500);
+  } else {
+    correctStreak = 0;
+    doubleShotActive = false;
+    updateSkillButtons();
+    
+    document.getElementById("feedback").style.color = "#f44336";
+    document.getElementById("feedback").innerText = "❌ Sai rồi! Đợi 1 giây...";
+    
+    questionLocked = true;
+    // Đợi 1 giây trước khi cho phép trả lời câu hỏi mới
+    setTimeout(() => {
+      questionLocked = false;
+      newQuestion();
+    }, 200);
   }
-  newQuestion();
+  
+  updateUI();
+}
+
+// Cập nhật UI
+function updateUI() {
+  document.getElementById("hpDisplay").innerText = `❤️ HP Thành: ${castleHP}`;
+  document.getElementById("scoreDisplay").innerText = `⭐ Điểm: ${score}`;
+}
+
+// Cập nhật trạng thái nút kỹ năng
+function updateSkillButtons() {
+  const rainBtn = document.getElementById("rainSkill");
+  const pierceBtn = document.getElementById("pierceSkill");
+  
+  // Cập nhật nút Mưa Đạn
+  if (correctStreak >= 6) {
+    rainBtn.disabled = false;
+    rainBtn.innerHTML = "Mưa Đạn (Sẵn sàng!)";
+  } else {
+    rainBtn.disabled = true;
+    rainBtn.innerHTML = `Mưa Đạn (${correctStreak}/6)`;
+  }
+  
+  // Cập nhật nút Đạn Thần
+  if (correctStreak >= 10) {
+    pierceBtn.disabled = false;
+    pierceBtn.innerHTML = "Đạn Thần (Sẵn sàng!)";
+  } else {
+    pierceBtn.disabled = true;
+    pierceBtn.innerHTML = `Đạn Thần (${correctStreak}/10)`;
+  }
+}
+
+// Kỹ năng Mưa Đạn
+function activateRainSkill() {
+  if (correctStreak < 6) return;
+  
+  // Tạo 13 viên đạn mưa
+  for (let i = 0; i < 13; i++) {
+    bullets.push(new Bullet(null, 'rain'));
+  }
+  
+  // Reset streak
+  correctStreak = 0;
+  doubleShotActive = false;
+  updateSkillButtons();
+}
+
+// Kỹ năng Đạn Thần
+function activatePierceSkill() {
+  if (correctStreak < 6) return;
+  
+  // Tạo đạn thần xuyên qua 5 quái
+  bullets.push(new Bullet(null, 'pierce'));
+  
+  // Reset streak
+  correctStreak = 0;
+  doubleShotActive = false;
+  updateSkillButtons();
 }
 
 // Spawn quái
-setInterval(()=> enemies.push(new Enemy()), 3000);
+const spawnInterval = setInterval(() => {
+  if (gameRunning) {
+    enemies.push(new Enemy());
+  }
+}, 7000);
 
-function gameLoop(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function gameLoop() {
+  if (!gameRunning) return;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Vẽ background
+  if (images['backgroundthanhtri.png'] && images['backgroundthanhtri.png'].complete) {
+    ctx.drawImage(images['backgroundthanhtri.png'], 0, 0, canvas.width, canvas.height);
+  } else {
+    // Fallback background
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#87CEEB');
+    gradient.addColorStop(0.7, '#98FB98');
+    gradient.addColorStop(1, '#8FBC8F');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 
   // Vẽ thành
-  ctx.fillStyle = "gray";
-  ctx.fillRect(30,180,50,100);
+  if (images['castle.png'] && images['castle.png'].complete) {
+    ctx.drawImage(images['castle.png'], 0, 155, 200, 200);
+  } else {
+    // Fallback castle
+    ctx.fillStyle = "#8B4513";
+    ctx.fillRect(50, 200, 100, 80);
+    ctx.fillStyle = "#654321";
+    ctx.fillRect(60, 180, 20, 40);
+    ctx.fillRect(100, 180, 20, 40);
+    ctx.fillRect(130, 180, 20, 40);
+  }
 
   // Vẽ nhân vật
-  ctx.fillStyle = "blue";
-  ctx.fillRect(hero.x, hero.y-40, 30,40);
+  if (images['hero.png'] && images['hero.png'].complete) {
+    ctx.drawImage(images['hero.png'], hero.x, hero.y, 40, 50);
+  } else {
+    // Fallback hero
+    ctx.fillStyle = "blue";
+    ctx.fillRect(hero.x, hero.y, 30, 40);
+  }
 
-  // Enemy update
-  for(let e of enemies) e.update();
-  enemies = enemies.filter(e=> e.hp>0);
-  for(let e of enemies) e.draw();
+  // Enemy update & draw
+  for (let e of enemies) e.update();
+  enemies = enemies.filter(e => e.hp > 0 && e.x > -50);
+  for (let e of enemies) e.draw();
 
-  // Bullet update
-  for(let b of bullets) b.update();
-  bullets = bullets.filter(b=> !b.hit);
-  for(let b of bullets) b.draw();
+  // Bullet update & draw
+  for (let b of bullets) b.update();
+  bullets = bullets.filter(b => !b.hit);
+  for (let b of bullets) b.draw();
 
-  // Hiển thị thông tin
-  ctx.fillStyle="white";
-  ctx.fillText(`HP Thành: ${castleHP}`, 20,20);
-  ctx.fillText(`Điểm: ${score}`, 20,40);
+  updateUI();
 
-  if(castleHP<=0){
-    ctx.fillStyle="white";
-    ctx.font="40px Arial";
-    ctx.fillText("GAME OVER!", canvas.width/2-100, canvas.height/2);
+  if (castleHP <= 0) {
+    gameRunning = false;
+    clearInterval(spawnInterval);
+    
+    // Game Over screen
+    ctx.fillStyle = "rgba(0,0,0,0.8)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = "white";
+    ctx.font = "bold 40px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("🏰 GAME OVER! 🏰", canvas.width/2, canvas.height/2 - 20);
+    
+    ctx.font = "20px Arial";
+    ctx.fillText(`Điểm cuối cùng: ${score}`, canvas.width/2, canvas.height/2 + 20);
+    
+    ctx.font = "16px Arial";
+    ctx.fillText("Nhấn F5 để chơi lại", canvas.width/2, canvas.height/2 + 50);
     return;
   }
 
   requestAnimationFrame(gameLoop);
 }
 
+// Khởi tạo game
 newQuestion();
 gameLoop();
+
+// Thêm sự kiện cho nút kỹ năng
+document.getElementById("rainSkill").addEventListener("click", activateRainSkill);
+document.getElementById("pierceSkill").addEventListener("click", activatePierceSkill);
 </script>
 </body>
 </html>

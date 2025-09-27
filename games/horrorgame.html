@@ -149,6 +149,7 @@
             <p><strong>E</strong> - Nhặt vũ khí/đồng xu</p>
             <p style="color: red; margin-top: 10px;">⚠️ CẨN THẬN: Có zombie đuổi theo!</p>
             <p style="color: #FF6B6B; margin-top: 10px;">🗡️ Ném vũ khí vào zombie để làm chúng choáng!</p>
+            <p style="color: #00FFFF; margin-top: 10px;">💡 Vũ khí sẽ tự động nhặt khi bạn chạm vào!</p>
         </div>
         <div id="crosshair"></div>
         <div id="gameUI">
@@ -186,27 +187,104 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setClearColor(0x87CEEB); // Màu trời xanh
-        // Bỏ đổ bóng để tăng hiệu suất
         document.getElementById('container').appendChild(renderer.domElement);
 
         // Tăng độ sáng
-        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0); // Tăng cường độ sáng
+        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // Tăng cường độ sáng
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
         directionalLight.position.set(10, 20, 10);
         scene.add(directionalLight);
 
-        // Tạo mặt đất
-        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        // Tạo mặt đất với hiệu ứng lát sàn
+        const groundSize = 100;
+        const tileSize = 5; // Kích thước mỗi ô sàn
+        
+        // Tạo texture cho sàn
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        
+        // Vẽ nền xanh
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Vẽ đường kẻ ô vuông
+        ctx.strokeStyle = '#388E3C';
+        ctx.lineWidth = 2;
+        
+        for (let i = 0; i <= 512; i += 512 / (groundSize / tileSize)) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, 512);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(512, i);
+            ctx.stroke();
+        }
+        
+        const groundTexture = new THREE.CanvasTexture(canvas);
+        groundTexture.wrapS = THREE.RepeatWrapping;
+        groundTexture.wrapT = THREE.RepeatWrapping;
+        groundTexture.repeat.set(groundSize / tileSize, groundSize / tileSize);
+        
+        const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize);
         const groundMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x4CAF50,
+            map: groundTexture,
             transparent: true,
-            opacity: 0.9 // Tăng độ mờ để dễ nhìn hơn
+            opacity: 0.9
         });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         scene.add(ground);
+
+        // Tạo các bức tường ảo với đường kẻ
+        const wallMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x888888,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.3
+        });
+        
+        // Tạo 4 bức tường xung quanh
+        const wallThickness = 1;
+        const wallHeight = 10;
+        
+        // Tường phía trước (z = -50)
+        const frontWall = new THREE.Mesh(
+            new THREE.BoxGeometry(groundSize, wallHeight, wallThickness),
+            wallMaterial
+        );
+        frontWall.position.set(0, wallHeight/2, -groundSize/2);
+        scene.add(frontWall);
+        
+        // Tường phía sau (z = 50)
+        const backWall = new THREE.Mesh(
+            new THREE.BoxGeometry(groundSize, wallHeight, wallThickness),
+            wallMaterial
+        );
+        backWall.position.set(0, wallHeight/2, groundSize/2);
+        scene.add(backWall);
+        
+        // Tường bên trái (x = -50)
+        const leftWall = new THREE.Mesh(
+            new THREE.BoxGeometry(wallThickness, wallHeight, groundSize),
+            wallMaterial
+        );
+        leftWall.position.set(-groundSize/2, wallHeight/2, 0);
+        scene.add(leftWall);
+        
+        // Tường bên phải (x = 50)
+        const rightWall = new THREE.Mesh(
+            new THREE.BoxGeometry(wallThickness, wallHeight, groundSize),
+            wallMaterial
+        );
+        rightWall.position.set(groundSize/2, wallHeight/2, 0);
+        scene.add(rightWall);
 
         // Tạo ô đỏ ở giữa (nơi giao đồng xu)
         const depositBoxGeometry = new THREE.BoxGeometry(4, 1, 4);
@@ -221,18 +299,18 @@
 
         // Tạo biển báo cho ô đỏ
         const signGeometry = new THREE.PlaneGeometry(3, 1);
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, 256, 64);
-        ctx.fillStyle = '#FF0000';
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('NỘP ĐỒNG XU', 128, 40);
+        const signCanvas = document.createElement('canvas');
+        signCanvas.width = 256;
+        signCanvas.height = 64;
+        const signCtx = signCanvas.getContext('2d');
+        signCtx.fillStyle = '#FFFFFF';
+        signCtx.fillRect(0, 0, 256, 64);
+        signCtx.fillStyle = '#FF0000';
+        signCtx.font = '20px Arial';
+        signCtx.textAlign = 'center';
+        signCtx.fillText('NỘP ĐỒNG XU', 128, 40);
         
-        const signTexture = new THREE.CanvasTexture(canvas);
+        const signTexture = new THREE.CanvasTexture(signCanvas);
         const signMaterial = new THREE.MeshBasicMaterial({ map: signTexture });
         const sign = new THREE.Mesh(signGeometry, signMaterial);
         sign.position.set(0, 3, 0);
@@ -275,7 +353,7 @@
             });
             const coin = new THREE.Mesh(coinGeometry, coinMaterial);
 
-            // ✅ Xoay đồng xu đứng dọc
+            // Xoay đồng xu đứng dọc
             coin.rotation.z = Math.PI / 2;
 
             // Đặt đồng xu ở vị trí ngẫu nhiên (tránh ô đỏ ở giữa)
@@ -372,6 +450,31 @@
                     material = new THREE.MeshLambertMaterial({ color: 0x0000FF });
                     scale = 0.5;
                     break;
+                case 'sword':
+                    geometry = new THREE.BoxGeometry(0.1, 1.2, 0.3);
+                    material = new THREE.MeshLambertMaterial({ color: 0xE0E0E0 });
+                    scale = 1;
+                    break;
+                case 'dagger':
+                    geometry = new THREE.CylinderGeometry(0.05, 0.1, 0.8, 8);
+                    material = new THREE.MeshLambertMaterial({ color: 0xA0A0A0 });
+                    scale = 1;
+                    break;
+                case 'mace':
+                    geometry = new THREE.SphereGeometry(0.4, 16, 16);
+                    material = new THREE.MeshLambertMaterial({ color: 0x606060 });
+                    scale = 1;
+                    break;
+                case 'bow':
+                    geometry = new THREE.TorusGeometry(0.5, 0.1, 8, 32, Math.PI);
+                    material = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    scale = 1;
+                    break;
+                case 'staff':
+                    geometry = new THREE.CylinderGeometry(0.1, 0.1, 1.8, 8);
+                    material = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    scale = 1;
+                    break;
             }
             
             const weapon = new THREE.Mesh(geometry, material);
@@ -389,11 +492,11 @@
             return weapon;
         }
 
-        // Tạo 5 vũ khí ở các vị trí ngẫu nhiên
+        // Tạo 10 vũ khí ở các vị trí ngẫu nhiên (5 vũ khí ban đầu + 5 vũ khí mới)
         const weapons = [];
-        const weaponTypes = ['knife', 'axe', 'hammer', 'spear', 'shuriken'];
+        const weaponTypes = ['knife', 'axe', 'hammer', 'spear', 'shuriken', 'sword', 'dagger', 'mace', 'bow', 'staff'];
         
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 10; i++) {
             let x, z;
             do {
                 x = (Math.random() - 0.5) * 80;
@@ -450,28 +553,29 @@
                         gameState.nextCoinToFind++;
                         updateUI();
                         
-                        // Hiệu ứng âm thanh (có thể thêm sau)
                         console.log(`Đã thu thập đồng xu số ${coin.userData.number}!`);
                     }
                 }
             });
         }
 
-        // Kiểm tra va chạm với vũ khí
+        // Kiểm tra va chạm với vũ khí (tự động nhặt)
         function checkWeaponCollision() {
             const playerPosition = camera.position;
             
             weapons.forEach(weapon => {
                 if (!weapon.userData.collected && !weapon.userData.isThrown) {
                     const distance = playerPosition.distanceTo(weapon.position);
-                    if (distance < 2 && !gameState.currentWeapon) {
-                        // Nhặt vũ khí
-                        weapon.userData.collected = true;
-                        weapon.visible = false;
-                        gameState.currentWeapon = weapon;
-                        updateUI();
-                        
-                        console.log(`Đã nhặt vũ khí: ${weapon.userData.type}`);
+                    if (distance < 2) {
+                        // Tự động nhặt vũ khí nếu không có vũ khí nào
+                        if (!gameState.currentWeapon) {
+                            weapon.userData.collected = true;
+                            weapon.visible = false;
+                            gameState.currentWeapon = weapon;
+                            updateUI();
+                            
+                            console.log(`Đã nhặt vũ khí: ${weapon.userData.type}`);
+                        }
                     }
                 }
             });
@@ -618,6 +722,7 @@
                     break;
                 case 'ShiftLeft': movement.sprint = true; break;
                 case 'KeyE': 
+                    // Vẫn giữ phím E để nhặt vũ khí nếu cần
                     checkWeaponCollision(); 
                     break;
             }
@@ -773,6 +878,7 @@
 
             // Kiểm tra va chạm
             checkCoinCollision();
+            checkWeaponCollision(); // Kiểm tra va chạm vũ khí tự động
             checkDepositBoxCollision();
             checkZombieCollision();
 
@@ -782,7 +888,7 @@
         // Khởi tạo UI
         updateUI();
 
-        // Xử lý resize
+               // Xử lý resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();

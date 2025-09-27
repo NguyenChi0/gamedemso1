@@ -16,6 +16,7 @@ const gamesMap = {
   12: "maygapgau.html",
   13: "horrorgame.html",
   14: "baovethanhtri.html",
+  15: "baovehondao.html",
 };
 
 

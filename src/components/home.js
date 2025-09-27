@@ -21,6 +21,7 @@ function Home() {
     { id: 12, name: "Máy gắp gấu", fileName: "maygapgau.html", icon: "🧸", category: "Kỹ năng", difficulty: "Trung bình" },
     { id: 13, name: "Horror Game", fileName: "horrorgame.html", icon: "💀", category: "Thế giới mở", difficulty: "Trung bình" },
     { id: 14, name: "Bảo vệ thành trì", fileName: "baovethanhtri.html", icon: "🏰", category: "Trí tuệ", difficulty: "Trung bình" },
+    { id: 15, name: "Bảo vệ hòn đảo", fileName: "baovehondao.html", icon: "🔐", category: "test", difficulty: "test" },
   ];
 
   useEffect(() => {
